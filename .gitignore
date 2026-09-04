@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Environment secrets - never commit real credentials
+.env
+.env.local
+
+# Frontend build output (rebuilt on deploy, not checked in)
+frontend/dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS/editor
+.DS_Store
+.vscode/
