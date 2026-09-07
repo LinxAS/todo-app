@@ -20,7 +20,7 @@ export default function FilterBar({ filters, onChange }) {
             </div>
 
             <div>
-                <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">Status</p>
+                <p className="text-xs font-semibold text-ink uppercase tracking-wide mb-1.5 bg-bg px-2 py-0.5 rounded">Status</p>
                 <div className="flex gap-1.5 flex-wrap">
                     {[
                         { value: 'new',           label: 'New' },
@@ -51,7 +51,7 @@ export default function FilterBar({ filters, onChange }) {
             </div>
 
             <div>
-                <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">Priority</p>
+                <p className="text-xs font-semibold text-ink uppercase tracking-wide mb-1.5 bg-bg px-2 py-0.5 rounded">Priority</p>
                 <div className="flex gap-1.5 flex-wrap">
                     {['', 'high', 'medium', 'low'].map((p) => (
                         <button
@@ -68,7 +68,7 @@ export default function FilterBar({ filters, onChange }) {
             </div>
 
             <div>
-                <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">Deadline</p>
+                <p className="text-xs font-semibold text-ink uppercase tracking-wide mb-1.5 bg-bg px-2 py-0.5 rounded">Deadline</p>
                 <div className="space-y-1.5">
                     <select
                         value={filters.deadlineMode || ''}
@@ -101,7 +101,7 @@ export default function FilterBar({ filters, onChange }) {
             </div>
 
             <div>
-                <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">Scope</p>
+                <p className="text-xs font-semibold text-ink uppercase tracking-wide mb-1.5 bg-bg px-2 py-0.5 rounded">Scope</p>
                 <div className="flex gap-1.5 flex-wrap">
                     {[['mine', 'All'], ['owned', 'Mine'], ['assigned', 'Assigned to me']].map(([v, label]) => (
                         <button
