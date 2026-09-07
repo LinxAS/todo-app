@@ -47,8 +47,13 @@ export const api = {
     me: () => request('/auth/me'),
 
     listTasks: (params = {}) => {
+        const serialized = {
+            ...params,
+            // status is an array — send as comma-separated string, omit if empty
+            status: Array.isArray(params.status) ? params.status.join(',') : (params.status || ''),
+        };
         const qs = new URLSearchParams(
-            Object.entries(params).filter(([, v]) => v !== undefined && v !== '')
+            Object.entries(serialized).filter(([, v]) => v !== undefined && v !== '')
         ).toString();
         return request(`/tasks${qs ? `?${qs}` : ''}`);
     },

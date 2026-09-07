@@ -21,20 +21,33 @@ export default function FilterBar({ filters, onChange }) {
 
             <div>
                 <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">Status</p>
-                <select
-                    value={filters.status}
-                    onChange={(e) => update('status', e.target.value)}
-                    className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent bg-surface"
-                >
-                    <option value="">All</option>
-                    <option value="new">New</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="pending_info">Pending Info</option>
-                    <option value="ready_to_test">Ready to Test</option>
-                    <option value="closed">Closed</option>
-                    <option value="cancelled">Cancelled</option>
-                    <option value="completed">Completed</option>
-                </select>
+                <div className="flex gap-1.5 flex-wrap">
+                    {[
+                        { value: 'new',           label: 'New' },
+                        { value: 'in_progress',   label: 'In Progress' },
+                        { value: 'pending_info',  label: 'Pending Info' },
+                        { value: 'ready_to_test', label: 'Ready to Test' },
+                        { value: 'closed',        label: 'Closed' },
+                        { value: 'cancelled',     label: 'Cancelled' },
+                        { value: 'completed',     label: 'Completed' },
+                    ].map((s) => {
+                        const active = (filters.status || []).includes(s.value);
+                        return (
+                            <button
+                                key={s.value}
+                                type="button"
+                                onClick={() => {
+                                    const cur = filters.status || [];
+                                    update('status', active ? cur.filter((v) => v !== s.value) : [...cur, s.value]);
+                                }}
+                                className={`px-2.5 py-1 rounded-full text-xs font-medium border
+                                    ${active ? 'bg-accent text-white border-accent' : 'border-border text-ink hover:bg-bg'}`}
+                            >
+                                {s.label}
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
             <div>

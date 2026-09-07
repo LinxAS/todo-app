@@ -9,7 +9,7 @@ export default function Dashboard({ user, onLogout }) {
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [filters, setFilters] = useState({ search: '', status: '', category: '', priority: '', scope: 'mine' });
+    const [filters, setFilters] = useState({ search: '', status: [], category: '', priority: '', scope: 'mine' });
     const [formTask, setFormTask] = useState(null); // null = closed, {} = new, task = edit
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
@@ -111,7 +111,7 @@ export default function Dashboard({ user, onLogout }) {
                         onClick={() => setMobileFiltersOpen(true)}
                         className="text-sm font-medium text-accent underline underline-offset-2"
                     >
-                        Filters {(filters.category || filters.priority || filters.scope !== 'mine') ? '•' : ''}
+                        Filters {(filters.status?.length > 0 || filters.category || filters.priority || filters.scope !== 'mine') ? '•' : ''}
                     </button>
                 </div>
                 {mobileFiltersOpen && (

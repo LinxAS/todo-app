@@ -21,7 +21,7 @@ const STATUS_MAP = Object.fromEntries(STATUSES.map((s) => [s.value, s]));
 
 function formatDeadline(deadline) {
     if (!deadline) return null;
-    const d = new Date(deadline + 'T00:00:00');
+    const d = new Date(deadline.slice(0, 10) + 'T00:00:00');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const diffDays = Math.round((d - today) / 86400000);

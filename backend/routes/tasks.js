@@ -86,9 +86,12 @@ router.get('/', async (req, res) => {
     }
     conditions.push(scopeClause);
 
-    if (status && VALID_STATUS.includes(status)) {
-        p += 1; params.push(status);
-        conditions.push(`t.status = $${p}`);
+    if (status && status.trim()) {
+        const statusList = status.split(',').map((s) => s.trim()).filter((s) => VALID_STATUS.includes(s));
+        if (statusList.length > 0) {
+            p += 1; params.push(statusList);
+            conditions.push(`t.status = ANY($${p}::text[])`);
+        }
     }
     if (category && VALID_CATEGORY.includes(category)) {
         p += 1; params.push(category);
