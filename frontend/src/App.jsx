@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { api, getToken, clearToken } from './api/client';
-import AuthScreen from './components/AuthScreen';
 import Dashboard from './components/Dashboard';
 
 export default function App() {
@@ -10,12 +9,16 @@ export default function App() {
     useEffect(() => {
         const token = getToken();
         if (!token) {
-            setChecking(false);
+            // No token — redirect to portal login
+            window.location.replace('/');
             return;
         }
         api.me()
             .then((data) => setUser(data.user))
-            .catch(() => clearToken())
+            .catch(() => {
+                clearToken();
+                window.location.replace('/');
+            })
             .finally(() => setChecking(false));
     }, []);
 
@@ -23,9 +26,12 @@ export default function App() {
         return <div className="min-h-screen flex items-center justify-center text-sm text-muted">Loading…</div>;
     }
 
-    if (!user) {
-        return <AuthScreen onAuthenticated={setUser} />;
+    if (!user) return null; // redirect in progress
+
+    function handleLogout() {
+        clearToken();
+        window.location.replace('/');
     }
 
-    return <Dashboard user={user} onLogout={() => setUser(null)} />;
+    return <Dashboard user={user} onLogout={handleLogout} />;
 }

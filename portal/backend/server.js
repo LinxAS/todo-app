@@ -5,14 +5,12 @@ const cors = require('cors');
 const path = require('path');
 
 const authRoutes = require('./routes/auth');
-const taskRoutes = require('./routes/tasks');
+const userRoutes = require('./routes/users');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
-app.use(helmet({
-    contentSecurityPolicy: false, // relax CSP; Nginx/your own policy can tighten this
-}));
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({
     origin: (process.env.CORS_ORIGIN || '*').split(',').map((s) => s.trim()),
 }));
@@ -23,10 +21,9 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
-app.use('/api/tasks', taskRoutes);
+app.use('/api/users', userRoutes);
 
-// Serve the built frontend (frontend/dist) if present, so Nginx can simply
-// reverse-proxy everything to this one Node process on port 3000.
+// Serve the built portal frontend from portal/frontend/dist
 const distPath = path.join(__dirname, '..', 'frontend', 'dist');
 app.use(express.static(distPath));
 app.get('*', (req, res, next) => {
@@ -42,5 +39,5 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`TODO API listening on port ${PORT}`);
+    console.log(`Linx-AS Portal API listening on port ${PORT}`);
 });

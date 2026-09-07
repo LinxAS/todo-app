@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { api, clearToken } from '../api/client';
+import { api } from '../api/client';
 import TaskItem from './TaskItem';
 import TaskForm from './TaskForm';
 import ShareModal from './ShareModal';
@@ -74,7 +74,6 @@ export default function Dashboard({ user, onLogout }) {
     }
 
     function handleLogout() {
-        clearToken();
         onLogout();
     }
 

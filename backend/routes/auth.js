@@ -8,45 +8,14 @@ const SALT_ROUNDS = 12;
 
 function signToken(user) {
     return jwt.sign(
-        { sub: user.id, username: user.username },
+        { sub: user.id, username: user.username, is_admin: user.is_admin || false },
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
 }
 
-router.post('/register', async (req, res) => {
-    const { username, password } = req.body;
-
-    if (!username || !password) {
-        return res.status(400).json({ error: 'Username and password are required' });
-    }
-    if (username.length < 3 || username.length > 50) {
-        return res.status(400).json({ error: 'Username must be 3-50 characters' });
-    }
-    if (password.length < 8) {
-        return res.status(400).json({ error: 'Password must be at least 8 characters' });
-    }
-
-    try {
-        const existing = await pool.query('SELECT id FROM users WHERE username = $1', [username]);
-        if (existing.rows.length > 0) {
-            return res.status(409).json({ error: 'Username is already taken' });
-        }
-
-        const hash = await bcrypt.hash(password, SALT_ROUNDS);
-        const result = await pool.query(
-            'INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id, username, created_at',
-            [username, hash]
-        );
-
-        const user = result.rows[0];
-        const token = signToken(user);
-        res.status(201).json({ token, user: { id: user.id, username: user.username } });
-    } catch (err) {
-        console.error('Register error:', err);
-        res.status(500).json({ error: 'Could not create account' });
-    }
-});
+// Registration is handled by the portal's User Management (admin only).
+// This endpoint is intentionally removed from the TODO app.
 
 router.post('/login', async (req, res) => {
     const { username, password } = req.body;
@@ -68,7 +37,7 @@ router.post('/login', async (req, res) => {
         }
 
         const token = signToken(user);
-        res.json({ token, user: { id: user.id, username: user.username } });
+        res.json({ token, user: { id: user.id, username: user.username, is_admin: user.is_admin } });
     } catch (err) {
         console.error('Login error:', err);
         res.status(500).json({ error: 'Login failed' });

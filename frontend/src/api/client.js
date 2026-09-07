@@ -1,4 +1,8 @@
-const TOKEN_KEY = 'todoapp_token';
+// Must match the portal's TOKEN_KEY so the token set at login is readable here.
+const TOKEN_KEY = 'linxas_token';
+// In production (base=/todo/), API calls go to /todo/api/* which Nginx proxies
+// to the TODO backend at port 3001. In dev (base=/), they go to /api/*.
+const API_BASE = `${import.meta.env.BASE_URL}api`;
 
 export function getToken() {
     return localStorage.getItem(TOKEN_KEY);
@@ -17,7 +21,7 @@ async function request(path, { method = 'GET', body, auth = true } = {}) {
         if (token) headers.Authorization = `Bearer ${token}`;
     }
 
-    const res = await fetch(`/api${path}`, {
+    const res = await fetch(`${API_BASE}${path}`, {
         method,
         headers,
         body: body ? JSON.stringify(body) : undefined,
@@ -40,8 +44,6 @@ async function request(path, { method = 'GET', body, auth = true } = {}) {
 }
 
 export const api = {
-    register: (username, password) => request('/auth/register', { method: 'POST', body: { username, password }, auth: false }),
-    login: (username, password) => request('/auth/login', { method: 'POST', body: { username, password }, auth: false }),
     me: () => request('/auth/me'),
 
     listTasks: (params = {}) => {
