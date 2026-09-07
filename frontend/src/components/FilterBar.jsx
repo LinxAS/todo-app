@@ -51,23 +51,6 @@ export default function FilterBar({ filters, onChange }) {
             </div>
 
             <div>
-                <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">Category</p>
-                <div className="flex gap-1.5 flex-wrap">
-                    {['', 'work', 'personal'].map((c) => (
-                        <button
-                            key={c || 'all'}
-                            type="button"
-                            onClick={() => update('category', c)}
-                            className={`px-2.5 py-1 rounded-full text-xs font-medium border capitalize
-                                ${filters.category === c ? 'bg-accent text-white border-accent' : 'border-border text-ink hover:bg-bg'}`}
-                        >
-                            {c || 'All'}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            <div>
                 <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">Priority</p>
                 <div className="flex gap-1.5 flex-wrap">
                     {['', 'high', 'medium', 'low'].map((p) => (

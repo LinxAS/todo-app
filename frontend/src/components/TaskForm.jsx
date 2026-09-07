@@ -12,13 +12,12 @@ const STATUSES = [
     { value: 'completed',     label: 'Completed' },
 ];
 
-const emptyTask = { title: '', description: '', category: 'personal', priority: 'medium', deadline: '', assignedTo: '', status: 'new' };
+const emptyTask = { title: '', description: '', priority: 'medium', deadline: '', assignedTo: '', status: 'new' };
 
 export default function TaskForm({ initial, onSave, onClose }) {
     const [form, setForm] = useState(initial ? {
         title: initial.title,
         description: initial.description || '',
-        category: initial.category,
         priority: initial.priority,
         deadline: initial.deadline ? initial.deadline.slice(0, 10) : '',
         assignedTo: initial.assigned_username || '',
@@ -95,32 +94,18 @@ export default function TaskForm({ initial, onSave, onClose }) {
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-sm font-medium text-ink mb-1" htmlFor="category">Category</label>
-                            <select
-                                id="category"
-                                value={form.category}
-                                onChange={(e) => setForm({ ...form, category: e.target.value })}
-                                className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                            >
-                                <option value="personal">Personal</option>
-                                <option value="work">Work</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-ink mb-1" htmlFor="priority">Priority</label>
-                            <select
-                                id="priority"
-                                value={form.priority}
-                                onChange={(e) => setForm({ ...form, priority: e.target.value })}
-                                className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                            >
-                                <option value="high">High</option>
-                                <option value="medium">Medium</option>
-                                <option value="low">Low</option>
-                            </select>
-                        </div>
+                    <div>
+                        <label className="block text-sm font-medium text-ink mb-1" htmlFor="priority">Priority</label>
+                        <select
+                            id="priority"
+                            value={form.priority}
+                            onChange={(e) => setForm({ ...form, priority: e.target.value })}
+                            className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                        >
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
                     </div>
 
                     <div>

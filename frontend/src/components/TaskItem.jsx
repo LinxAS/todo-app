@@ -62,7 +62,6 @@ export default function TaskItem({ task, onStatusChange, onEdit, onDelete }) {
                         </p>
                     )}
                     <div className="flex items-center gap-2 mt-1.5 flex-wrap text-[11px]">
-                        <span className="px-1.5 py-0.5 rounded border border-border text-muted capitalize">{task.category}</span>
                         <span className={`font-semibold ${priority.text}`}>{priority.label}</span>
                         {deadline && (
                             <span className={deadline.tone === 'overdue' ? 'text-danger font-medium' : deadline.tone === 'soon' ? 'text-ink font-medium' : 'text-muted'}>

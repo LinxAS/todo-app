@@ -6,7 +6,6 @@ const { requireAuth } = require('../middleware/auth');
 const router = express.Router();
 router.use(requireAuth);
 
-const VALID_CATEGORY = ['work', 'personal'];
 const VALID_PRIORITY = ['high', 'medium', 'low'];
 const VALID_STATUS = ['new', 'in_progress', 'pending_info', 'ready_to_test', 'closed', 'cancelled', 'completed'];
 const TERMINAL_STATUS = new Set(['completed', 'closed', 'cancelled']);
@@ -93,10 +92,6 @@ router.get('/', async (req, res) => {
             conditions.push(`t.status = ANY($${p}::text[])`);
         }
     }
-    if (category && VALID_CATEGORY.includes(category)) {
-        p += 1; params.push(category);
-        conditions.push(`t.category = $${p}`);
-    }
     if (priority && VALID_PRIORITY.includes(priority)) {
         p += 1; params.push(priority);
         conditions.push(`t.priority = $${p}`);
@@ -126,13 +121,10 @@ router.get('/', async (req, res) => {
 // POST /api/tasks
 router.post('/', async (req, res) => {
     const userId = req.user.id;
-    const { title, description, category, priority, deadline, assignedTo } = req.body;
+    const { title, description, priority, deadline, assignedTo } = req.body;
 
     if (!title || !title.trim()) {
         return res.status(400).json({ error: 'Title is required' });
-    }
-    if (category && !VALID_CATEGORY.includes(category)) {
-        return res.status(400).json({ error: 'Category must be work or personal' });
     }
     if (priority && !VALID_PRIORITY.includes(priority)) {
         return res.status(400).json({ error: 'Priority must be high, medium, or low' });
@@ -147,9 +139,9 @@ router.post('/', async (req, res) => {
 
     try {
         const result = await pool.query(
-            `INSERT INTO tasks (owner_id, title, description, category, priority, deadline, assigned_to)
-             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-            [userId, title.trim(), description || null, category || 'personal', priority || 'medium', deadline || null, assignedToId]
+            `INSERT INTO tasks (owner_id, title, description, priority, deadline, assigned_to)
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+            [userId, title.trim(), description || null, priority || 'medium', deadline || null, assignedToId]
         );
 
         const created = await pool.query(
@@ -182,19 +174,16 @@ async function assertCanEdit(taskId, userId) {
 router.patch('/:id', async (req, res) => {
     const userId = req.user.id;
     const taskId = parseInt(req.params.id, 10);
-    const { title, description, category, priority, deadline, status, assignedTo } = req.body;
+    const { title, description, priority, deadline, status, assignedTo } = req.body;
 
     const access = await assertCanEdit(taskId, userId);
     if (!access.ok) return res.status(access.status).json({ error: access.error });
 
-    if (category && !VALID_CATEGORY.includes(category)) {
-        return res.status(400).json({ error: 'Category must be work or personal' });
-    }
     if (priority && !VALID_PRIORITY.includes(priority)) {
         return res.status(400).json({ error: 'Priority must be high, medium, or low' });
     }
     if (status && !VALID_STATUS.includes(status)) {
-        return res.status(400).json({ error: 'Status must be pending or completed' });
+        return res.status(400).json({ error: 'Invalid status value' });
     }
 
     const fields = [];
@@ -207,7 +196,6 @@ router.patch('/:id', async (req, res) => {
 
     if (title !== undefined) set('title', title.trim());
     if (description !== undefined) set('description', description);
-    if (category !== undefined) set('category', category);
     if (priority !== undefined) set('priority', priority);
     if (deadline !== undefined) set('deadline', deadline);
     if (status !== undefined) {
