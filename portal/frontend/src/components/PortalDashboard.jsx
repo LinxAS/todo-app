@@ -1,5 +1,6 @@
 import React from 'react';
 import { clearToken } from '../api/client';
+import LinxasLogo from './Logo';
 
 function TasksIcon() {
     return (
@@ -48,10 +49,7 @@ export default function PortalDashboard({ user, onLogout, onNavigate }) {
             <header className="sticky top-0 z-30 bg-bg/95 backdrop-blur border-b border-border">
                 <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <svg width="24" height="24" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-                            <rect width="28" height="28" rx="7" fill="#2D5A4A"/>
-                            <path d="M8 14.5L12 18.5L20 10" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
+                        <LinxasLogo size={28} />
                         <span className="text-lg font-extrabold tracking-tight text-ink">Linx-AS</span>
                     </div>
                     <div className="flex items-center gap-3">

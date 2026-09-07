@@ -4,7 +4,7 @@ import TaskItem from './TaskItem';
 import TaskForm from './TaskForm';
 import ShareModal from './ShareModal';
 import FilterBar from './FilterBar';
-import { PlusIcon, CloseIcon } from './Icons';
+import { PlusIcon, CloseIcon, LinxasLogo } from './Icons';
 
 export default function Dashboard({ user, onLogout }) {
     const [tasks, setTasks] = useState([]);
@@ -81,7 +81,10 @@ export default function Dashboard({ user, onLogout }) {
         <div className="min-h-screen bg-bg">
             <header className="sticky top-0 z-30 bg-bg/95 backdrop-blur border-b border-border">
                 <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-                    <h1 className="text-xl font-extrabold tracking-tight text-ink">Tasks</h1>
+                    <div className="flex items-center gap-2">
+                        <LinxasLogo size={28} />
+                        <span className="text-lg font-extrabold tracking-tight text-ink">Linx-AS</span>
+                    </div>
                     <div className="flex items-center gap-3">
                         <span className="text-sm text-muted hidden sm:inline">{user.username}</span>
                         <button

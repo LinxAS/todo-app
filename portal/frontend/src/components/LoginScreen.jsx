@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { api, setToken } from '../api/client';
+import LinxasLogo from './Logo';
 
 export default function LoginScreen({ onAuthenticated }) {
     const [mode, setMode] = useState('login'); // 'login' | 'setup'
@@ -29,10 +30,7 @@ export default function LoginScreen({ onAuthenticated }) {
             <div className="w-full max-w-sm">
                 <div className="mb-8">
                     <div className="flex items-center gap-2 mb-1">
-                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-                            <rect width="28" height="28" rx="7" fill="#2D5A4A"/>
-                            <path d="M8 14.5L12 18.5L20 10" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
+                        <LinxasLogo size={36} />
                         <span className="text-2xl font-extrabold tracking-tight text-ink">Linx-AS</span>
                     </div>
                     <p className="text-muted text-sm mt-1">
