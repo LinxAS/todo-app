@@ -1,5 +1,6 @@
 const express = require('express');
-const pool = require('../db/pool');
+const pool = require('../db/pool');             // todoapp DB — tasks & task_shares
+const portalPool = require('../db/portalPool'); // linxas_portal DB — user lookups
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -17,12 +18,29 @@ const ORDER_CLAUSE = `
         t.created_at ASC
 `;
 
+// Task columns — no user JOIN; owner_username is resolved separately via portalPool.
 const TASK_COLUMNS = `
     t.id, t.title, t.description, t.category, t.priority, t.status,
     t.deadline, t.created_at, t.updated_at, t.completed_at,
-    t.owner_id, u.username AS owner_username,
-    (t.owner_id = $1) AS is_owner
+    t.owner_id, (t.owner_id = $1) AS is_owner
 `;
+
+// Fetch { userId: username } map from linxas_portal for the given user ID list.
+async function getUsernameMap(userIds) {
+    if (!userIds.length) return {};
+    const result = await portalPool.query(
+        'SELECT id, username FROM users WHERE id = ANY($1::int[])',
+        [userIds]
+    );
+    return Object.fromEntries(result.rows.map((u) => [u.id, u.username]));
+}
+
+// Attach owner_username to each task row using a single portalPool query.
+async function attachOwnerUsernames(tasks) {
+    const ownerIds = [...new Set(tasks.map((t) => t.owner_id))];
+    const map = await getUsernameMap(ownerIds);
+    return tasks.map((t) => ({ ...t, owner_username: map[t.owner_id] || 'unknown' }));
+}
 
 // GET /api/tasks?status=&category=&priority=&search=&scope=
 // scope: 'mine' (default, owned + shared with me), 'owned', 'shared'
@@ -45,37 +63,33 @@ router.get('/', async (req, res) => {
     conditions.push(scopeClause);
 
     if (status && VALID_STATUS.includes(status)) {
-        p += 1;
-        params.push(status);
+        p += 1; params.push(status);
         conditions.push(`t.status = $${p}`);
     }
     if (category && VALID_CATEGORY.includes(category)) {
-        p += 1;
-        params.push(category);
+        p += 1; params.push(category);
         conditions.push(`t.category = $${p}`);
     }
     if (priority && VALID_PRIORITY.includes(priority)) {
-        p += 1;
-        params.push(priority);
+        p += 1; params.push(priority);
         conditions.push(`t.priority = $${p}`);
     }
     if (search && search.trim()) {
-        p += 1;
-        params.push(`%${search.trim()}%`);
+        p += 1; params.push(`%${search.trim()}%`);
         conditions.push(`(t.title ILIKE $${p} OR t.description ILIKE $${p})`);
     }
 
     const query = `
         SELECT ${TASK_COLUMNS}
         FROM tasks t
-        JOIN users u ON u.id = t.owner_id
         WHERE ${conditions.join(' AND ')}
         ${ORDER_CLAUSE}
     `;
 
     try {
         const result = await pool.query(query, params);
-        res.json({ tasks: result.rows });
+        const tasks = await attachOwnerUsernames(result.rows);
+        res.json({ tasks });
     } catch (err) {
         console.error('List tasks error:', err);
         res.status(500).json({ error: 'Could not fetch tasks' });
@@ -100,23 +114,16 @@ router.post('/', async (req, res) => {
     try {
         const result = await pool.query(
             `INSERT INTO tasks (owner_id, title, description, category, priority, deadline)
-             VALUES ($1, $2, $3, $4, $5, $6)
-             RETURNING id`,
-            [
-                userId,
-                title.trim(),
-                description || null,
-                category || 'personal',
-                priority || 'medium',
-                deadline || null,
-            ]
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+            [userId, title.trim(), description || null, category || 'personal', priority || 'medium', deadline || null]
         );
 
         const created = await pool.query(
-            `SELECT ${TASK_COLUMNS} FROM tasks t JOIN users u ON u.id = t.owner_id WHERE t.id = $2`,
+            `SELECT ${TASK_COLUMNS} FROM tasks t WHERE t.id = $2`,
             [userId, result.rows[0].id]
         );
-        res.status(201).json({ task: created.rows[0] });
+        const [task] = await attachOwnerUsernames(created.rows);
+        res.status(201).json({ task });
     } catch (err) {
         console.error('Create task error:', err);
         res.status(500).json({ error: 'Could not create task' });
@@ -166,9 +173,7 @@ router.patch('/:id', async (req, res) => {
     let p = 1;
 
     function set(column, value) {
-        p += 1;
-        params.push(value);
-        fields.push(`${column} = $${p}`);
+        p += 1; params.push(value); fields.push(`${column} = $${p}`);
     }
 
     if (title !== undefined) set('title', title.trim());
@@ -178,8 +183,6 @@ router.patch('/:id', async (req, res) => {
     if (deadline !== undefined) set('deadline', deadline);
     if (status !== undefined) {
         set('status', status);
-        // Completing a task stamps completed_at; reopening it clears that stamp,
-        // which is what drives the automatic move between Pending and Completed lists.
         fields.push(`completed_at = ${status === 'completed' ? 'NOW()' : 'NULL'}`);
     }
     fields.push(`updated_at = NOW()`);
@@ -191,10 +194,11 @@ router.patch('/:id', async (req, res) => {
     try {
         await pool.query(`UPDATE tasks SET ${fields.join(', ')} WHERE id = $1`, params);
         const updated = await pool.query(
-            `SELECT ${TASK_COLUMNS} FROM tasks t JOIN users u ON u.id = t.owner_id WHERE t.id = $2`,
+            `SELECT ${TASK_COLUMNS} FROM tasks t WHERE t.id = $2`,
             [userId, taskId]
         );
-        res.json({ task: updated.rows[0] });
+        const [task] = await attachOwnerUsernames(updated.rows);
+        res.json({ task });
     } catch (err) {
         console.error('Update task error:', err);
         res.status(500).json({ error: 'Could not update task' });
@@ -238,7 +242,11 @@ router.post('/:id/share', async (req, res) => {
             return res.status(403).json({ error: 'Only the task owner can share it' });
         }
 
-        const targetUser = await pool.query('SELECT id FROM users WHERE username = $1', [username.trim()]);
+        // Look up user by username in linxas_portal
+        const targetUser = await portalPool.query(
+            'SELECT id FROM users WHERE username = $1',
+            [username.trim()]
+        );
         if (targetUser.rows.length === 0) {
             return res.status(404).json({ error: 'No user with that username' });
         }
@@ -260,7 +268,7 @@ router.post('/:id/share', async (req, res) => {
     }
 });
 
-// GET /api/tasks/:id/shares  (owner only) - who a task is currently shared with
+// GET /api/tasks/:id/shares  (owner only) — who a task is currently shared with
 router.get('/:id/shares', async (req, res) => {
     const userId = req.user.id;
     const taskId = parseInt(req.params.id, 10);
@@ -272,13 +280,18 @@ router.get('/:id/shares', async (req, res) => {
             return res.status(403).json({ error: 'Only the task owner can view sharing' });
         }
 
-        const shares = await pool.query(
-            `SELECT u.id AS user_id, u.username, ts.can_edit
-             FROM task_shares ts JOIN users u ON u.id = ts.shared_with_user_id
-             WHERE ts.task_id = $1`,
+        const sharesResult = await pool.query(
+            'SELECT shared_with_user_id, can_edit FROM task_shares WHERE task_id = $1',
             [taskId]
         );
-        res.json({ shares: shares.rows });
+        const userIds = sharesResult.rows.map((s) => s.shared_with_user_id);
+        const usernameMap = await getUsernameMap(userIds);
+        const shares = sharesResult.rows.map((s) => ({
+            user_id: s.shared_with_user_id,
+            username: usernameMap[s.shared_with_user_id] || 'unknown',
+            can_edit: s.can_edit,
+        }));
+        res.json({ shares });
     } catch (err) {
         console.error('List shares error:', err);
         res.status(500).json({ error: 'Could not fetch sharing info' });

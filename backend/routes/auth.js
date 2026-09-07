@@ -1,10 +1,9 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const pool = require('../db/pool');
+const portalPool = require('../db/portalPool'); // users live in linxas_portal
 
 const router = express.Router();
-const SALT_ROUNDS = 12;
 
 function signToken(user) {
     return jwt.sign(
@@ -25,7 +24,7 @@ router.post('/login', async (req, res) => {
     }
 
     try {
-        const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+        const result = await portalPool.query('SELECT * FROM users WHERE username = $1', [username]);
         const user = result.rows[0];
         if (!user) {
             return res.status(401).json({ error: 'Invalid username or password' });

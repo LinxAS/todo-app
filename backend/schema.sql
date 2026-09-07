@@ -1,20 +1,11 @@
--- TODO App schema
--- Run this once against your PostgreSQL 16 database:
---   psql -U <user> -d <database> -f schema.sql
-
-CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    is_admin BOOLEAN NOT NULL DEFAULT FALSE,
-    first_name VARCHAR(100),
-    last_name VARCHAR(100),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+-- TODO App schema (todoapp database)
+-- Users are stored in the linxas_portal database; owner_id / shared_with_user_id
+-- are plain integers (no FK constraint across databases — enforced at app level).
+-- Run this once:  psql -U todoapp_user -d todoapp -f schema.sql
 
 CREATE TABLE IF NOT EXISTS tasks (
     id SERIAL PRIMARY KEY,
-    owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    owner_id INTEGER NOT NULL,
     title VARCHAR(200) NOT NULL,
     description TEXT,
     category VARCHAR(10) NOT NULL DEFAULT 'personal' CHECK (category IN ('work', 'personal')),
@@ -30,7 +21,7 @@ CREATE TABLE IF NOT EXISTS tasks (
 CREATE TABLE IF NOT EXISTS task_shares (
     id SERIAL PRIMARY KEY,
     task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-    shared_with_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    shared_with_user_id INTEGER NOT NULL,
     can_edit BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (task_id, shared_with_user_id)

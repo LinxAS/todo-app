@@ -1,0 +1,32 @@
+-- Migration 003: Move users table from todoapp to linxas_portal
+-- Run ALL steps as the postgres superuser: sudo su - postgres -c "psql ..."
+--
+-- Step 1: Create portal_user and linxas_portal database
+--   CREATE USER portal_user WITH PASSWORD 'your-strong-password';
+--   CREATE DATABASE linxas_portal OWNER portal_user;
+--
+-- Step 2: Create users table in linxas_portal (see portal/backend/schema.sql)
+--   psql -d linxas_portal -f portal/backend/schema.sql
+--
+-- Step 3: Grant permissions
+--   GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO portal_user;
+--   GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO portal_user;
+--   GRANT SELECT ON users TO todoapp_user;   -- for TODO backend user lookups
+--
+-- Step 4: Migrate existing users from todoapp to linxas_portal
+--   (run as postgres, which has access to both DBs)
+--   COPY (SELECT id, username, password_hash, is_admin, first_name, last_name, created_at
+--         FROM users) TO '/tmp/users_export.csv' WITH CSV;
+--   -- then in linxas_portal:
+--   COPY users (id, username, password_hash, is_admin, first_name, last_name, created_at)
+--   FROM '/tmp/users_export.csv' WITH CSV;
+--   SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
+--
+-- Step 5: Drop FK constraints and users table from todoapp
+--   ALTER TABLE tasks DROP CONSTRAINT tasks_owner_id_fkey;
+--   ALTER TABLE task_shares DROP CONSTRAINT task_shares_shared_with_user_id_fkey;
+--   DROP TABLE users;
+--
+-- Step 6: Update .env files
+--   backend/.env       → add PORTAL_PGDATABASE=linxas_portal
+--   portal/backend/.env → PGDATABASE=linxas_portal, PGUSER=portal_user, PGPASSWORD=...
