@@ -13,6 +13,12 @@ export default function Dashboard({ user, onLogout }) {
     const [formTask, setFormTask] = useState(null); // null = closed, {} = new, task = edit
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
+    // Admin view state
+    const [adminUsers, setAdminUsers] = useState([]);
+    const [adminViewUserId, setAdminViewUserId] = useState('');
+    const [adminTasks, setAdminTasks] = useState([]);
+    const [adminLoading, setAdminLoading] = useState(false);
+
     const loadTasks = useCallback(async (activeFilters) => {
         try {
             const data = await api.listTasks(activeFilters);
@@ -31,6 +37,22 @@ export default function Dashboard({ user, onLogout }) {
         const handle = setTimeout(() => loadTasks(filters), filters.search ? 250 : 0);
         return () => clearTimeout(handle);
     }, [filters, loadTasks]);
+
+    // Fetch all portal users once for the admin dropdown
+    useEffect(() => {
+        if (!user.is_admin) return;
+        api.listUsers().then((d) => setAdminUsers(d.users)).catch(() => {});
+    }, [user.is_admin]);
+
+    // Reload admin tasks whenever the selected user changes
+    useEffect(() => {
+        if (!user.is_admin || !adminViewUserId) { setAdminTasks([]); return; }
+        setAdminLoading(true);
+        api.listTasks({ viewUserId: adminViewUserId, scope: 'mine' })
+            .then((d) => setAdminTasks(d.tasks))
+            .catch((err) => setError(err.message))
+            .finally(() => setAdminLoading(false));
+    }, [adminViewUserId, user.is_admin]);
 
     const DONE = new Set(['completed', 'closed', 'cancelled']);
     const active = useMemo(() => tasks.filter((t) => !DONE.has(t.status)), [tasks]);
@@ -179,6 +201,47 @@ export default function Dashboard({ user, onLogout }) {
                                         ))}
                                     </ul>
                                 </section>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ── Admin Tasks ── */}
+                    {user.is_admin && (
+                        <div className="mt-8 border-t border-border pt-6">
+                            <div className="flex items-center gap-3 mb-4">
+                                <h2 className="text-sm font-semibold text-ink uppercase tracking-wide shrink-0">
+                                    Admin View
+                                </h2>
+                                <select
+                                    value={adminViewUserId}
+                                    onChange={(e) => setAdminViewUserId(e.target.value)}
+                                    className="rounded-md border border-border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent bg-surface"
+                                >
+                                    <option value="">— Select a user —</option>
+                                    {adminUsers.map((u) => (
+                                        <option key={u.id} value={u.id}>{u.username}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {adminViewUserId && (
+                                adminLoading ? (
+                                    <p className="text-sm text-muted">Loading…</p>
+                                ) : adminTasks.length === 0 ? (
+                                    <p className="text-sm text-muted border border-dashed border-border rounded-md py-6 text-center">
+                                        No tasks for this user.
+                                    </p>
+                                ) : (
+                                    <ul className="space-y-2">
+                                        {adminTasks.map((task) => (
+                                            <TaskItem
+                                                key={task.id}
+                                                task={task}
+                                                readOnly
+                                            />
+                                        ))}
+                                    </ul>
+                                )
                             )}
                         </div>
                     )}

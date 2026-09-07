@@ -33,7 +33,7 @@ function formatDeadline(deadline) {
     return { label, tone: 'normal' };
 }
 
-export default function TaskItem({ task, onStatusChange, onEdit, onDelete }) {
+export default function TaskItem({ task, onStatusChange, onEdit, onDelete, readOnly = false }) {
     const priority = PRIORITY_STYLE[task.priority] || PRIORITY_STYLE.medium;
     const deadline = formatDeadline(task.deadline);
     const statusStyle = STATUS_MAP[task.status] || STATUS_MAP.new;
@@ -69,30 +69,38 @@ export default function TaskItem({ task, onStatusChange, onEdit, onDelete }) {
                             </span>
                         )}
                         {/* Inline status selector */}
-                        <select
-                            value={task.status}
-                            onChange={(e) => onStatusChange(task, e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
-                            className={`px-1.5 py-0.5 rounded border text-[11px] font-medium cursor-pointer focus:outline-none ${statusStyle.cls}`}
-                            aria-label="Task status"
-                        >
-                            {STATUSES.map((s) => (
-                                <option key={s.value} value={s.value}>{s.label}</option>
-                            ))}
-                        </select>
+                        {readOnly ? (
+                            <span className={`px-1.5 py-0.5 rounded border text-[11px] font-medium ${statusStyle.cls}`}>
+                                {statusStyle.label}
+                            </span>
+                        ) : (
+                            <select
+                                value={task.status}
+                                onChange={(e) => onStatusChange(task, e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                className={`px-1.5 py-0.5 rounded border text-[11px] font-medium cursor-pointer focus:outline-none ${statusStyle.cls}`}
+                                aria-label="Task status"
+                            >
+                                {STATUSES.map((s) => (
+                                    <option key={s.value} value={s.value}>{s.label}</option>
+                                ))}
+                            </select>
+                        )}
                     </div>
                 </div>
 
-                <div className="flex items-center gap-1 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
-                    <button type="button" onClick={() => onEdit(task)} title="Edit" className="p-1.5 rounded hover:bg-bg text-muted hover:text-ink">
-                        <EditIcon />
-                    </button>
-                    {task.is_owner && (
-                        <button type="button" onClick={() => onDelete(task)} title="Delete" className="p-1.5 rounded hover:bg-bg text-muted hover:text-danger">
-                            <TrashIcon />
+                {!readOnly && (
+                    <div className="flex items-center gap-1 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
+                        <button type="button" onClick={() => onEdit(task)} title="Edit" className="p-1.5 rounded hover:bg-bg text-muted hover:text-ink">
+                            <EditIcon />
                         </button>
-                    )}
-                </div>
+                        {task.is_owner && (
+                            <button type="button" onClick={() => onDelete(task)} title="Delete" className="p-1.5 rounded hover:bg-bg text-muted hover:text-danger">
+                                <TrashIcon />
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
         </li>
     );

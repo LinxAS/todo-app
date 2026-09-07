@@ -65,23 +65,34 @@ async function resolveUsername(username) {
     return result.rows[0].id;
 }
 
-// GET /api/tasks?status=&category=&priority=&search=&scope=
+// GET /api/tasks?status=&category=&priority=&search=&scope=&viewUserId=
 // scope: 'mine' (default — owned + assigned to me), 'owned', 'assigned'
+// viewUserId: admin-only — view tasks owned or assigned to a specific user
 router.get('/', async (req, res) => {
     const userId = req.user.id;
-    const { status, category, priority, search, scope = 'mine' } = req.query;
+    const { status, category, priority, search, scope = 'mine', viewUserId } = req.query;
 
     const conditions = [];
-    const params = [userId];
+    const params = [userId]; // $1 = requesting user (used in is_owner calculation)
     let p = 1;
+
+    // Admin can view tasks for any specific user
+    let scopeRef = '$1';
+    if (req.user.is_admin && viewUserId) {
+        const parsed = parseInt(viewUserId, 10);
+        if (!isNaN(parsed) && parsed !== userId) {
+            p += 1; params.push(parsed);
+            scopeRef = `$${p}`;
+        }
+    }
 
     let scopeClause;
     if (scope === 'owned') {
-        scopeClause = `t.owner_id = $1`;
+        scopeClause = `t.owner_id = ${scopeRef}`;
     } else if (scope === 'assigned') {
-        scopeClause = `t.assigned_to = $1`;
+        scopeClause = `t.assigned_to = ${scopeRef}`;
     } else {
-        scopeClause = `(t.owner_id = $1 OR t.assigned_to = $1)`;
+        scopeClause = `(t.owner_id = ${scopeRef} OR t.assigned_to = ${scopeRef})`;
     }
     conditions.push(scopeClause);
 
