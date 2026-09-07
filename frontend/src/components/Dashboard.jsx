@@ -9,7 +9,7 @@ export default function Dashboard({ user, onLogout }) {
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [filters, setFilters] = useState({ search: '', status: [], priority: '', scope: 'mine' });
+    const [filters, setFilters] = useState({ search: '', status: ['new', 'in_progress'], priority: '', scope: 'mine' });
     const [formTask, setFormTask] = useState(null); // null = closed, {} = new, task = edit
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
