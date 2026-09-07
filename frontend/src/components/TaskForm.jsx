@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { api } from '../api/client';
 import { CloseIcon } from './Icons';
 
 const emptyTask = { title: '', description: '', category: 'personal', priority: 'medium', deadline: '', assignedTo: '' };
@@ -12,11 +13,18 @@ export default function TaskForm({ initial, onSave, onClose }) {
         deadline: initial.deadline ? initial.deadline.slice(0, 10) : '',
         assignedTo: initial.assigned_username || '',
     } : emptyTask);
+    const [users, setUsers] = useState([]);
     const [error, setError] = useState('');
     const [busy, setBusy] = useState(false);
     const isEdit = Boolean(initial);
     // Only the owner can assign; for new tasks the creator is always the owner.
     const canAssign = !initial || initial.is_owner;
+
+    useEffect(() => {
+        if (canAssign) {
+            api.listUsers().then((d) => setUsers(d.users)).catch(() => {});
+        }
+    }, [canAssign]);
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -120,14 +128,17 @@ export default function TaskForm({ initial, onSave, onClose }) {
                             <label className="block text-sm font-medium text-ink mb-1" htmlFor="assignedTo">
                                 Assign to <span className="text-muted font-normal">(username, optional)</span>
                             </label>
-                            <input
+                            <select
                                 id="assignedTo"
-                                type="text"
-                                placeholder="Leave blank to leave unassigned"
                                 value={form.assignedTo}
                                 onChange={(e) => setForm({ ...form, assignedTo: e.target.value })}
                                 className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                            />
+                            >
+                                <option value="">— Unassigned —</option>
+                                {users.map((u) => (
+                                    <option key={u.id} value={u.username}>{u.username}</option>
+                                ))}
+                            </select>
                         </div>
                     )}
 

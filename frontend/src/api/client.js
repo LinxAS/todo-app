@@ -55,4 +55,5 @@ export const api = {
     createTask: (task) => request('/tasks', { method: 'POST', body: task }),
     updateTask: (id, patch) => request(`/tasks/${id}`, { method: 'PATCH', body: patch }),
     deleteTask: (id) => request(`/tasks/${id}`, { method: 'DELETE' }),
+    listUsers: () => request('/users'),
 };

@@ -81,7 +81,10 @@ export default function Dashboard({ user, onLogout }) {
                 <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <LinxasLogo size={28} />
-                        <span className="text-lg font-extrabold tracking-tight text-ink">Linx-AS</span>
+                        <div className="leading-tight">
+                            <span className="text-lg font-extrabold tracking-tight text-ink">Task Master</span>
+                            <span className="text-xs text-muted ml-2 hidden sm:inline">by Linx-AS</span>
+                        </div>
                     </div>
                     <div className="flex items-center gap-3">
                         <span className="text-sm text-muted hidden sm:inline">{user.username}</span>

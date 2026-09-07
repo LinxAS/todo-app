@@ -6,6 +6,7 @@ const path = require('path');
 
 const authRoutes = require('./routes/auth');
 const taskRoutes = require('./routes/tasks');
+const userRoutes = require('./routes/users');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -24,6 +25,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/users', userRoutes);
 
 // Serve the built frontend (frontend/dist) if present, so Nginx can simply
 // reverse-proxy everything to this one Node process on port 3000.
