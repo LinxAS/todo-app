@@ -68,6 +68,39 @@ export default function FilterBar({ filters, onChange }) {
             </div>
 
             <div>
+                <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">Deadline</p>
+                <div className="space-y-1.5">
+                    <select
+                        value={filters.deadlineMode || ''}
+                        onChange={(e) => onChange({ ...filters, deadlineMode: e.target.value, deadlineFrom: '', deadlineTo: '' })}
+                        className="w-full rounded-md border border-border px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent bg-surface"
+                    >
+                        <option value="">Any</option>
+                        <option value="on">On</option>
+                        <option value="before">Before</option>
+                        <option value="after">After</option>
+                        <option value="between">Between</option>
+                    </select>
+                    {filters.deadlineMode && (
+                        <input
+                            type="date"
+                            value={filters.deadlineFrom || ''}
+                            onChange={(e) => update('deadlineFrom', e.target.value)}
+                            className="w-full rounded-md border border-border px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
+                        />
+                    )}
+                    {filters.deadlineMode === 'between' && (
+                        <input
+                            type="date"
+                            value={filters.deadlineTo || ''}
+                            onChange={(e) => update('deadlineTo', e.target.value)}
+                            className="w-full rounded-md border border-border px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
+                        />
+                    )}
+                </div>
+            </div>
+
+            <div>
                 <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">Scope</p>
                 <div className="flex gap-1.5 flex-wrap">
                     {[['mine', 'All'], ['owned', 'Mine'], ['assigned', 'Assigned to me']].map(([v, label]) => (

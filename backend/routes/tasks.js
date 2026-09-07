@@ -101,6 +101,25 @@ router.get('/', async (req, res) => {
         conditions.push(`(t.title ILIKE $${p} OR t.description ILIKE $${p})`);
     }
 
+    const { deadlineMode, deadlineFrom, deadlineTo } = req.query;
+    if (deadlineMode && deadlineFrom) {
+        if (deadlineMode === 'on') {
+            p += 1; params.push(deadlineFrom);
+            conditions.push(`t.deadline = $${p}`);
+        } else if (deadlineMode === 'before') {
+            p += 1; params.push(deadlineFrom);
+            conditions.push(`t.deadline < $${p}`);
+        } else if (deadlineMode === 'after') {
+            p += 1; params.push(deadlineFrom);
+            conditions.push(`t.deadline > $${p}`);
+        } else if (deadlineMode === 'between' && deadlineTo) {
+            p += 1; params.push(deadlineFrom);
+            const pFrom = p;
+            p += 1; params.push(deadlineTo);
+            conditions.push(`t.deadline BETWEEN $${pFrom} AND $${p}`);
+        }
+    }
+
     const query = `
         SELECT ${TASK_COLUMNS}
         FROM tasks t
