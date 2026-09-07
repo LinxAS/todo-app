@@ -54,9 +54,9 @@ export default function FilterBar({ filters, onChange }) {
             </div>
 
             <div>
-                <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">Owner</p>
+                <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">Scope</p>
                 <div className="flex gap-1.5 flex-wrap">
-                    {[['mine', 'All'], ['owned', 'Mine'], ['shared', 'Shared with me']].map(([v, label]) => (
+                    {[['mine', 'All'], ['owned', 'Mine'], ['assigned', 'Assigned to me']].map(([v, label]) => (
                         <button
                             key={v}
                             type="button"

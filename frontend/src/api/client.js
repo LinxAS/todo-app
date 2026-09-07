@@ -55,7 +55,4 @@ export const api = {
     createTask: (task) => request('/tasks', { method: 'POST', body: task }),
     updateTask: (id, patch) => request(`/tasks/${id}`, { method: 'PATCH', body: patch }),
     deleteTask: (id) => request(`/tasks/${id}`, { method: 'DELETE' }),
-    shareTask: (id, username, canEdit = true) => request(`/tasks/${id}/share`, { method: 'POST', body: { username, canEdit } }),
-    listShares: (id) => request(`/tasks/${id}/shares`),
-    unshareTask: (id, userId) => request(`/tasks/${id}/share/${userId}`, { method: 'DELETE' }),
 };

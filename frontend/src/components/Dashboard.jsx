@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
 import TaskItem from './TaskItem';
 import TaskForm from './TaskForm';
-import ShareModal from './ShareModal';
 import FilterBar from './FilterBar';
 import { PlusIcon, CloseIcon, LinxasLogo } from './Icons';
 
@@ -12,7 +11,6 @@ export default function Dashboard({ user, onLogout }) {
     const [error, setError] = useState('');
     const [filters, setFilters] = useState({ search: '', category: '', priority: '', scope: 'mine' });
     const [formTask, setFormTask] = useState(null); // null = closed, {} = new, task = edit
-    const [shareTask, setShareTask] = useState(null);
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
     const loadTasks = useCallback(async (activeFilters) => {
@@ -156,7 +154,6 @@ export default function Dashboard({ user, onLogout }) {
                                                 onToggle={handleToggle}
                                                 onEdit={setFormTask}
                                                 onDelete={handleDelete}
-                                                onShare={setShareTask}
                                             />
                                         ))}
                                     </ul>
@@ -176,7 +173,6 @@ export default function Dashboard({ user, onLogout }) {
                                                 onToggle={handleToggle}
                                                 onEdit={setFormTask}
                                                 onDelete={handleDelete}
-                                                onShare={setShareTask}
                                             />
                                         ))}
                                     </ul>
@@ -203,9 +199,7 @@ export default function Dashboard({ user, onLogout }) {
                     onClose={() => setFormTask(null)}
                 />
             )}
-            {shareTask && (
-                <ShareModal task={shareTask} onClose={() => setShareTask(null)} />
-            )}
+
         </div>
     );
 }

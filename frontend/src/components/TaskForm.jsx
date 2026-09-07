@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CloseIcon } from './Icons';
 
-const emptyTask = { title: '', description: '', category: 'personal', priority: 'medium', deadline: '' };
+const emptyTask = { title: '', description: '', category: 'personal', priority: 'medium', deadline: '', assignedTo: '' };
 
 export default function TaskForm({ initial, onSave, onClose }) {
     const [form, setForm] = useState(initial ? {
@@ -10,10 +10,13 @@ export default function TaskForm({ initial, onSave, onClose }) {
         category: initial.category,
         priority: initial.priority,
         deadline: initial.deadline ? initial.deadline.slice(0, 10) : '',
+        assignedTo: initial.assigned_username || '',
     } : emptyTask);
     const [error, setError] = useState('');
     const [busy, setBusy] = useState(false);
     const isEdit = Boolean(initial);
+    // Only the owner can assign; for new tasks the creator is always the owner.
+    const canAssign = !initial || initial.is_owner;
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -24,7 +27,11 @@ export default function TaskForm({ initial, onSave, onClose }) {
         setBusy(true);
         setError('');
         try {
-            await onSave({ ...form, deadline: form.deadline || null });
+            await onSave({
+                ...form,
+                deadline: form.deadline || null,
+                assignedTo: form.assignedTo.trim() || null,
+            });
         } catch (err) {
             setError(err.message);
             setBusy(false);
@@ -107,6 +114,22 @@ export default function TaskForm({ initial, onSave, onClose }) {
                             className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                         />
                     </div>
+
+                    {canAssign && (
+                        <div>
+                            <label className="block text-sm font-medium text-ink mb-1" htmlFor="assignedTo">
+                                Assign to <span className="text-muted font-normal">(username, optional)</span>
+                            </label>
+                            <input
+                                id="assignedTo"
+                                type="text"
+                                placeholder="Leave blank to leave unassigned"
+                                value={form.assignedTo}
+                                onChange={(e) => setForm({ ...form, assignedTo: e.target.value })}
+                                className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                            />
+                        </div>
+                    )}
 
                     {error && <p className="text-sm text-danger" role="alert">{error}</p>}
 

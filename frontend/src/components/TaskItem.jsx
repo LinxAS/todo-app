@@ -1,5 +1,5 @@
 import React from 'react';
-import { EditIcon, TrashIcon, ShareIcon, UsersIcon } from './Icons';
+import { EditIcon, TrashIcon } from './Icons';
 
 const PRIORITY_STYLE = {
     high: { bar: 'bg-priorityHigh', label: 'High', text: 'text-priorityHigh' },
@@ -21,7 +21,7 @@ function formatDeadline(deadline) {
     return { label, tone: 'normal' };
 }
 
-export default function TaskItem({ task, onToggle, onEdit, onDelete, onShare }) {
+export default function TaskItem({ task, onToggle, onEdit, onDelete }) {
     const priority = PRIORITY_STYLE[task.priority] || PRIORITY_STYLE.medium;
     const deadline = formatDeadline(task.deadline);
     const isCompleted = task.status === 'completed';
@@ -51,8 +51,13 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete, onShare }) 
                         <p className={`text-sm font-medium truncate ${isCompleted ? 'line-through text-muted' : 'text-ink'}`}>
                             {task.title}
                         </p>
+                        {/* Assignee context: show who assigned it if you're not the owner */}
                         {!task.is_owner && (
                             <span className="text-[11px] text-muted shrink-0">from {task.owner_username}</span>
+                        )}
+                        {/* Owner context: show who it's assigned to */}
+                        {task.is_owner && task.assigned_username && (
+                            <span className="text-[11px] text-muted shrink-0">→ {task.assigned_username}</span>
                         )}
                     </div>
                     {task.description && (
@@ -72,11 +77,6 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete, onShare }) 
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
-                    {task.is_owner && (
-                        <button type="button" onClick={() => onShare(task)} title="Share" className="p-1.5 rounded hover:bg-bg text-muted hover:text-ink">
-                            <ShareIcon />
-                        </button>
-                    )}
                     <button type="button" onClick={() => onEdit(task)} title="Edit" className="p-1.5 rounded hover:bg-bg text-muted hover:text-ink">
                         <EditIcon />
                     </button>

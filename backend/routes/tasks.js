@@ -1,5 +1,5 @@
 const express = require('express');
-const pool = require('../db/pool');             // todoapp DB — tasks & task_shares
+const pool = require('../db/pool');             // todoapp DB — tasks
 const portalPool = require('../db/portalPool'); // linxas_portal DB — user lookups
 const { requireAuth } = require('../middleware/auth');
 
@@ -18,11 +18,11 @@ const ORDER_CLAUSE = `
         t.created_at ASC
 `;
 
-// Task columns — no user JOIN; owner_username is resolved separately via portalPool.
+// Task columns — owner_username / assigned_username resolved separately via portalPool.
 const TASK_COLUMNS = `
     t.id, t.title, t.description, t.category, t.priority, t.status,
     t.deadline, t.created_at, t.updated_at, t.completed_at,
-    t.owner_id, (t.owner_id = $1) AS is_owner
+    t.owner_id, t.assigned_to, (t.owner_id = $1) AS is_owner
 `;
 
 // Fetch { userId: username } map from linxas_portal for the given user ID list.
@@ -35,15 +35,38 @@ async function getUsernameMap(userIds) {
     return Object.fromEntries(result.rows.map((u) => [u.id, u.username]));
 }
 
-// Attach owner_username to each task row using a single portalPool query.
-async function attachOwnerUsernames(tasks) {
-    const ownerIds = [...new Set(tasks.map((t) => t.owner_id))];
-    const map = await getUsernameMap(ownerIds);
-    return tasks.map((t) => ({ ...t, owner_username: map[t.owner_id] || 'unknown' }));
+// Attach owner_username and assigned_username to each task row.
+async function attachUsernames(tasks) {
+    const allIds = [...new Set([
+        ...tasks.map((t) => t.owner_id),
+        ...tasks.filter((t) => t.assigned_to).map((t) => t.assigned_to),
+    ])];
+    const map = await getUsernameMap(allIds);
+    return tasks.map((t) => ({
+        ...t,
+        owner_username: map[t.owner_id] || 'unknown',
+        assigned_username: t.assigned_to ? (map[t.assigned_to] || 'unknown') : null,
+    }));
+}
+
+// Resolve a username to a user ID via portalPool; returns null for blank input.
+// Throws a 404-shaped object if the username doesn't exist.
+async function resolveUsername(username) {
+    if (!username || !username.trim()) return null;
+    const result = await portalPool.query(
+        'SELECT id FROM users WHERE username = $1',
+        [username.trim()]
+    );
+    if (result.rows.length === 0) {
+        const err = new Error('Assigned user not found');
+        err.status = 404;
+        throw err;
+    }
+    return result.rows[0].id;
 }
 
 // GET /api/tasks?status=&category=&priority=&search=&scope=
-// scope: 'mine' (default, owned + shared with me), 'owned', 'shared'
+// scope: 'mine' (default — owned + assigned to me), 'owned', 'assigned'
 router.get('/', async (req, res) => {
     const userId = req.user.id;
     const { status, category, priority, search, scope = 'mine' } = req.query;
@@ -55,10 +78,10 @@ router.get('/', async (req, res) => {
     let scopeClause;
     if (scope === 'owned') {
         scopeClause = `t.owner_id = $1`;
-    } else if (scope === 'shared') {
-        scopeClause = `t.id IN (SELECT task_id FROM task_shares WHERE shared_with_user_id = $1)`;
+    } else if (scope === 'assigned') {
+        scopeClause = `t.assigned_to = $1`;
     } else {
-        scopeClause = `(t.owner_id = $1 OR t.id IN (SELECT task_id FROM task_shares WHERE shared_with_user_id = $1))`;
+        scopeClause = `(t.owner_id = $1 OR t.assigned_to = $1)`;
     }
     conditions.push(scopeClause);
 
@@ -88,7 +111,7 @@ router.get('/', async (req, res) => {
 
     try {
         const result = await pool.query(query, params);
-        const tasks = await attachOwnerUsernames(result.rows);
+        const tasks = await attachUsernames(result.rows);
         res.json({ tasks });
     } catch (err) {
         console.error('List tasks error:', err);
@@ -99,7 +122,7 @@ router.get('/', async (req, res) => {
 // POST /api/tasks
 router.post('/', async (req, res) => {
     const userId = req.user.id;
-    const { title, description, category, priority, deadline } = req.body;
+    const { title, description, category, priority, deadline, assignedTo } = req.body;
 
     if (!title || !title.trim()) {
         return res.status(400).json({ error: 'Title is required' });
@@ -111,18 +134,25 @@ router.post('/', async (req, res) => {
         return res.status(400).json({ error: 'Priority must be high, medium, or low' });
     }
 
+    let assignedToId;
+    try {
+        assignedToId = await resolveUsername(assignedTo);
+    } catch (err) {
+        return res.status(err.status || 400).json({ error: err.message });
+    }
+
     try {
         const result = await pool.query(
-            `INSERT INTO tasks (owner_id, title, description, category, priority, deadline)
-             VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-            [userId, title.trim(), description || null, category || 'personal', priority || 'medium', deadline || null]
+            `INSERT INTO tasks (owner_id, title, description, category, priority, deadline, assigned_to)
+             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+            [userId, title.trim(), description || null, category || 'personal', priority || 'medium', deadline || null, assignedToId]
         );
 
         const created = await pool.query(
             `SELECT ${TASK_COLUMNS} FROM tasks t WHERE t.id = $2`,
             [userId, result.rows[0].id]
         );
-        const [task] = await attachOwnerUsernames(created.rows);
+        const [task] = await attachUsernames(created.rows);
         res.status(201).json({ task });
     } catch (err) {
         console.error('Create task error:', err);
@@ -130,20 +160,15 @@ router.post('/', async (req, res) => {
     }
 });
 
-// Helper: confirm the user may modify this task (owner, or shared with edit rights)
+// Helper: confirm the user may modify this task (owner or assignee).
 async function assertCanEdit(taskId, userId) {
     const result = await pool.query(
-        `SELECT t.owner_id,
-                EXISTS(
-                    SELECT 1 FROM task_shares
-                    WHERE task_id = t.id AND shared_with_user_id = $2 AND can_edit = TRUE
-                ) AS shared_edit
-         FROM tasks t WHERE t.id = $1`,
-        [taskId, userId]
+        'SELECT owner_id, assigned_to FROM tasks WHERE id = $1',
+        [taskId]
     );
     if (result.rows.length === 0) return { ok: false, status: 404, error: 'Task not found' };
     const row = result.rows[0];
-    if (row.owner_id !== userId && !row.shared_edit) {
+    if (row.owner_id !== userId && row.assigned_to !== userId) {
         return { ok: false, status: 403, error: 'You do not have access to this task' };
     }
     return { ok: true, isOwner: row.owner_id === userId };
@@ -153,7 +178,7 @@ async function assertCanEdit(taskId, userId) {
 router.patch('/:id', async (req, res) => {
     const userId = req.user.id;
     const taskId = parseInt(req.params.id, 10);
-    const { title, description, category, priority, deadline, status } = req.body;
+    const { title, description, category, priority, deadline, status, assignedTo } = req.body;
 
     const access = await assertCanEdit(taskId, userId);
     if (!access.ok) return res.status(access.status).json({ error: access.error });
@@ -185,6 +210,21 @@ router.patch('/:id', async (req, res) => {
         set('status', status);
         fields.push(`completed_at = ${status === 'completed' ? 'NOW()' : 'NULL'}`);
     }
+
+    // Only the task owner can change the assignee.
+    if (assignedTo !== undefined) {
+        if (!access.isOwner) {
+            return res.status(403).json({ error: 'Only the task owner can change the assignee' });
+        }
+        let assignedToId;
+        try {
+            assignedToId = await resolveUsername(assignedTo);
+        } catch (err) {
+            return res.status(err.status || 400).json({ error: err.message });
+        }
+        set('assigned_to', assignedToId);
+    }
+
     fields.push(`updated_at = NOW()`);
 
     if (fields.length === 1) {
@@ -197,7 +237,7 @@ router.patch('/:id', async (req, res) => {
             `SELECT ${TASK_COLUMNS} FROM tasks t WHERE t.id = $2`,
             [userId, taskId]
         );
-        const [task] = await attachOwnerUsernames(updated.rows);
+        const [task] = await attachUsernames(updated.rows);
         res.json({ task });
     } catch (err) {
         console.error('Update task error:', err);
@@ -222,103 +262,6 @@ router.delete('/:id', async (req, res) => {
     } catch (err) {
         console.error('Delete task error:', err);
         res.status(500).json({ error: 'Could not delete task' });
-    }
-});
-
-// POST /api/tasks/:id/share  { username, canEdit }  (owner only)
-router.post('/:id/share', async (req, res) => {
-    const userId = req.user.id;
-    const taskId = parseInt(req.params.id, 10);
-    const { username, canEdit = true } = req.body;
-
-    if (!username || !username.trim()) {
-        return res.status(400).json({ error: 'Username is required' });
-    }
-
-    try {
-        const task = await pool.query('SELECT owner_id FROM tasks WHERE id = $1', [taskId]);
-        if (task.rows.length === 0) return res.status(404).json({ error: 'Task not found' });
-        if (task.rows[0].owner_id !== userId) {
-            return res.status(403).json({ error: 'Only the task owner can share it' });
-        }
-
-        // Look up user by username in linxas_portal
-        const targetUser = await portalPool.query(
-            'SELECT id FROM users WHERE username = $1',
-            [username.trim()]
-        );
-        if (targetUser.rows.length === 0) {
-            return res.status(404).json({ error: 'No user with that username' });
-        }
-        const targetId = targetUser.rows[0].id;
-        if (targetId === userId) {
-            return res.status(400).json({ error: 'You already own this task' });
-        }
-
-        await pool.query(
-            `INSERT INTO task_shares (task_id, shared_with_user_id, can_edit)
-             VALUES ($1, $2, $3)
-             ON CONFLICT (task_id, shared_with_user_id) DO UPDATE SET can_edit = $3`,
-            [taskId, targetId, canEdit]
-        );
-        res.status(201).json({ success: true });
-    } catch (err) {
-        console.error('Share task error:', err);
-        res.status(500).json({ error: 'Could not share task' });
-    }
-});
-
-// GET /api/tasks/:id/shares  (owner only) — who a task is currently shared with
-router.get('/:id/shares', async (req, res) => {
-    const userId = req.user.id;
-    const taskId = parseInt(req.params.id, 10);
-
-    try {
-        const task = await pool.query('SELECT owner_id FROM tasks WHERE id = $1', [taskId]);
-        if (task.rows.length === 0) return res.status(404).json({ error: 'Task not found' });
-        if (task.rows[0].owner_id !== userId) {
-            return res.status(403).json({ error: 'Only the task owner can view sharing' });
-        }
-
-        const sharesResult = await pool.query(
-            'SELECT shared_with_user_id, can_edit FROM task_shares WHERE task_id = $1',
-            [taskId]
-        );
-        const userIds = sharesResult.rows.map((s) => s.shared_with_user_id);
-        const usernameMap = await getUsernameMap(userIds);
-        const shares = sharesResult.rows.map((s) => ({
-            user_id: s.shared_with_user_id,
-            username: usernameMap[s.shared_with_user_id] || 'unknown',
-            can_edit: s.can_edit,
-        }));
-        res.json({ shares });
-    } catch (err) {
-        console.error('List shares error:', err);
-        res.status(500).json({ error: 'Could not fetch sharing info' });
-    }
-});
-
-// DELETE /api/tasks/:id/share/:userId  (owner only)
-router.delete('/:id/share/:userId', async (req, res) => {
-    const userId = req.user.id;
-    const taskId = parseInt(req.params.id, 10);
-    const targetId = parseInt(req.params.userId, 10);
-
-    try {
-        const task = await pool.query('SELECT owner_id FROM tasks WHERE id = $1', [taskId]);
-        if (task.rows.length === 0) return res.status(404).json({ error: 'Task not found' });
-        if (task.rows[0].owner_id !== userId) {
-            return res.status(403).json({ error: 'Only the task owner can unshare it' });
-        }
-
-        await pool.query(
-            'DELETE FROM task_shares WHERE task_id = $1 AND shared_with_user_id = $2',
-            [taskId, targetId]
-        );
-        res.json({ success: true });
-    } catch (err) {
-        console.error('Unshare task error:', err);
-        res.status(500).json({ error: 'Could not unshare task' });
     }
 });
 
