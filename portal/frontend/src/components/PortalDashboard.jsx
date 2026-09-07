@@ -70,7 +70,7 @@ export default function PortalDashboard({ user, onLogout, onNavigate }) {
             <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
                 <div className="mb-8">
                     <h1 className="text-2xl font-extrabold text-ink tracking-tight">
-                        Welcome back, {user.username}
+                        Welcome back, {[user.first_name, user.last_name].filter(Boolean).join(' ') || user.username}
                     </h1>
                     <p className="text-sm text-muted mt-1">Select an application to get started.</p>
                 </div>

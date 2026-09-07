@@ -12,7 +12,7 @@ router.use(requireAuth, requireAdmin);
 router.get('/', async (req, res) => {
     try {
         const result = await pool.query(
-            'SELECT id, username, is_admin, created_at FROM users ORDER BY created_at ASC'
+            'SELECT id, username, first_name, last_name, is_admin, created_at FROM users ORDER BY created_at ASC'
         );
         res.json({ users: result.rows });
     } catch (err) {
@@ -22,7 +22,7 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-    const { username, password, is_admin = false } = req.body;
+    const { username, password, is_admin = false, first_name = null, last_name = null } = req.body;
     if (!username || !password) {
         return res.status(400).json({ error: 'Username and password are required' });
     }
@@ -41,10 +41,10 @@ router.post('/', async (req, res) => {
 
         const hash = await bcrypt.hash(password, SALT_ROUNDS);
         const result = await pool.query(
-            `INSERT INTO users (username, password_hash, is_admin)
-             VALUES ($1, $2, $3)
-             RETURNING id, username, is_admin, created_at`,
-            [username, hash, is_admin]
+            `INSERT INTO users (username, password_hash, is_admin, first_name, last_name)
+             VALUES ($1, $2, $3, $4, $5)
+             RETURNING id, username, first_name, last_name, is_admin, created_at`,
+            [username, hash, is_admin, first_name || null, last_name || null]
         );
         res.status(201).json({ user: result.rows[0] });
     } catch (err) {
@@ -55,7 +55,7 @@ router.post('/', async (req, res) => {
 
 router.patch('/:id', async (req, res) => {
     const id = parseInt(req.params.id, 10);
-    const { is_admin, password } = req.body;
+    const { is_admin, password, first_name, last_name } = req.body;
 
     if (id === req.user.id && is_admin === false) {
         return res.status(400).json({ error: 'Cannot remove your own admin status' });
@@ -78,6 +78,14 @@ router.patch('/:id', async (req, res) => {
             updates.push(`password_hash = $${idx++}`);
             values.push(hash);
         }
+        if (first_name !== undefined) {
+            updates.push(`first_name = $${idx++}`);
+            values.push(first_name || null);
+        }
+        if (last_name !== undefined) {
+            updates.push(`last_name = $${idx++}`);
+            values.push(last_name || null);
+        }
 
         if (updates.length === 0) {
             return res.status(400).json({ error: 'Nothing to update' });
@@ -85,7 +93,7 @@ router.patch('/:id', async (req, res) => {
 
         values.push(id);
         const result = await pool.query(
-            `UPDATE users SET ${updates.join(', ')} WHERE id = $${idx} RETURNING id, username, is_admin, created_at`,
+            `UPDATE users SET ${updates.join(', ')} WHERE id = $${idx} RETURNING id, username, first_name, last_name, is_admin, created_at`,
             values
         );
         if (result.rows.length === 0) {
