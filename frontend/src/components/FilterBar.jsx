@@ -20,6 +20,24 @@ export default function FilterBar({ filters, onChange }) {
             </div>
 
             <div>
+                <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">Status</p>
+                <select
+                    value={filters.status}
+                    onChange={(e) => update('status', e.target.value)}
+                    className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent bg-surface"
+                >
+                    <option value="">All</option>
+                    <option value="new">New</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="pending_info">Pending Info</option>
+                    <option value="ready_to_test">Ready to Test</option>
+                    <option value="closed">Closed</option>
+                    <option value="cancelled">Cancelled</option>
+                    <option value="completed">Completed</option>
+                </select>
+            </div>
+
+            <div>
                 <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-1.5">Category</p>
                 <div className="flex gap-1.5 flex-wrap">
                     {['', 'work', 'personal'].map((c) => (

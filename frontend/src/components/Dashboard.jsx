@@ -9,7 +9,7 @@ export default function Dashboard({ user, onLogout }) {
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [filters, setFilters] = useState({ search: '', category: '', priority: '', scope: 'mine' });
+    const [filters, setFilters] = useState({ search: '', status: '', category: '', priority: '', scope: 'mine' });
     const [formTask, setFormTask] = useState(null); // null = closed, {} = new, task = edit
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
@@ -32,16 +32,15 @@ export default function Dashboard({ user, onLogout }) {
         return () => clearTimeout(handle);
     }, [filters, loadTasks]);
 
-    const pending = useMemo(() => tasks.filter((t) => t.status === 'pending'), [tasks]);
-    const completed = useMemo(() => tasks.filter((t) => t.status === 'completed'), [tasks]);
+    const DONE = new Set(['completed', 'closed', 'cancelled']);
+    const active = useMemo(() => tasks.filter((t) => !DONE.has(t.status)), [tasks]);
+    const done   = useMemo(() => tasks.filter((t) =>  DONE.has(t.status)), [tasks]);
 
-    // Optimistic toggle: flip status locally first so checking off a task feels
-    // instant, then sync with the server and roll back only on failure.
-    async function handleToggle(task) {
-        const nextStatus = task.status === 'completed' ? 'pending' : 'completed';
-        setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, status: nextStatus } : t)));
+    // Optimistic status change — updates locally first, rolls back on failure.
+    async function handleStatusChange(task, newStatus) {
+        setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, status: newStatus } : t)));
         try {
-            await api.updateTask(task.id, { status: nextStatus });
+            await api.updateTask(task.id, { status: newStatus });
         } catch (err) {
             setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, status: task.status } : t)));
             setError(err.message);
@@ -141,20 +140,20 @@ export default function Dashboard({ user, onLogout }) {
                             <section>
                                 <div className="flex items-center justify-between mb-3">
                                     <h2 className="text-sm font-semibold text-ink uppercase tracking-wide">
-                                        Pending <span className="text-muted font-normal">({pending.length})</span>
+                                        Active <span className="text-muted font-normal">({active.length})</span>
                                     </h2>
                                 </div>
-                                {pending.length === 0 ? (
+                                {active.length === 0 ? (
                                     <p className="text-sm text-muted border border-dashed border-border rounded-md py-6 text-center">
-                                        Nothing pending. Add a task to get started.
+                                        No active tasks. Add a task to get started.
                                     </p>
                                 ) : (
                                     <ul className="space-y-2">
-                                        {pending.map((task) => (
+                                        {active.map((task) => (
                                             <TaskItem
                                                 key={task.id}
                                                 task={task}
-                                                onToggle={handleToggle}
+                                                onStatusChange={handleStatusChange}
                                                 onEdit={setFormTask}
                                                 onDelete={handleDelete}
                                             />
@@ -163,17 +162,17 @@ export default function Dashboard({ user, onLogout }) {
                                 )}
                             </section>
 
-                            {completed.length > 0 && (
+                            {done.length > 0 && (
                                 <section>
                                     <h2 className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
-                                        Completed <span className="font-normal">({completed.length})</span>
+                                        Done <span className="font-normal">({done.length})</span>
                                     </h2>
                                     <ul className="space-y-2">
-                                        {completed.map((task) => (
+                                        {done.map((task) => (
                                             <TaskItem
                                                 key={task.id}
                                                 task={task}
-                                                onToggle={handleToggle}
+                                                onStatusChange={handleStatusChange}
                                                 onEdit={setFormTask}
                                                 onDelete={handleDelete}
                                             />

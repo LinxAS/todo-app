@@ -8,7 +8,8 @@ router.use(requireAuth);
 
 const VALID_CATEGORY = ['work', 'personal'];
 const VALID_PRIORITY = ['high', 'medium', 'low'];
-const VALID_STATUS = ['pending', 'completed'];
+const VALID_STATUS = ['new', 'in_progress', 'pending_info', 'ready_to_test', 'closed', 'cancelled', 'completed'];
+const TERMINAL_STATUS = new Set(['completed', 'closed', 'cancelled']);
 
 // Priority-then-deadline sort expression, reused by every SELECT below.
 const ORDER_CLAUSE = `
@@ -208,7 +209,7 @@ router.patch('/:id', async (req, res) => {
     if (deadline !== undefined) set('deadline', deadline);
     if (status !== undefined) {
         set('status', status);
-        fields.push(`completed_at = ${status === 'completed' ? 'NOW()' : 'NULL'}`);
+        fields.push(`completed_at = ${TERMINAL_STATUS.has(status) ? 'NOW()' : 'NULL'}`);
     }
 
     // Only the task owner can change the assignee.

@@ -2,7 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { CloseIcon } from './Icons';
 
-const emptyTask = { title: '', description: '', category: 'personal', priority: 'medium', deadline: '', assignedTo: '' };
+const STATUSES = [
+    { value: 'new',           label: 'New' },
+    { value: 'in_progress',   label: 'In Progress' },
+    { value: 'pending_info',  label: 'Pending Info' },
+    { value: 'ready_to_test', label: 'Ready to Test' },
+    { value: 'closed',        label: 'Closed' },
+    { value: 'cancelled',     label: 'Cancelled' },
+    { value: 'completed',     label: 'Completed' },
+];
+
+const emptyTask = { title: '', description: '', category: 'personal', priority: 'medium', deadline: '', assignedTo: '', status: 'new' };
 
 export default function TaskForm({ initial, onSave, onClose }) {
     const [form, setForm] = useState(initial ? {
@@ -12,6 +22,7 @@ export default function TaskForm({ initial, onSave, onClose }) {
         priority: initial.priority,
         deadline: initial.deadline ? initial.deadline.slice(0, 10) : '',
         assignedTo: initial.assigned_username || '',
+        status: initial.status || 'new',
     } : emptyTask);
     const [users, setUsers] = useState([]);
     const [error, setError] = useState('');
@@ -121,6 +132,20 @@ export default function TaskForm({ initial, onSave, onClose }) {
                             onChange={(e) => setForm({ ...form, deadline: e.target.value })}
                             className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                         />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-ink mb-1" htmlFor="status">Status</label>
+                        <select
+                            id="status"
+                            value={form.status}
+                            onChange={(e) => setForm({ ...form, status: e.target.value })}
+                            className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                        >
+                            {STATUSES.map((s) => (
+                                <option key={s.value} value={s.value}>{s.label}</option>
+                            ))}
+                        </select>
                     </div>
 
                     {canAssign && (
