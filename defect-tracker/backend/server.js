@@ -16,6 +16,7 @@ app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth',     require('./routes/auth'));
 app.use('/api/projects', require('./routes/projects'));
 app.use('/api/defects',  require('./routes/defects'));
+app.use('/api/defects/:defectId/comments', require('./routes/comments'));
 app.use('/api/users',    require('./routes/users'));
 
 // Serve compiled frontend

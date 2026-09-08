@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { EditIcon, TrashIcon, PaperclipIcon, CloseIcon } from './Icons';
+import React, { useEffect, useRef, useState } from 'react';
+import { api } from '../api/client';
+import { EditIcon, TrashIcon, PaperclipIcon, CloseIcon, CommentIcon } from './Icons';
 
 const PRIORITY_STYLE = {
     critical: { bar: 'bg-priorityCritical', label: 'Critical', text: 'text-priorityCritical' },
@@ -40,6 +41,51 @@ export default function DefectCard({ defect, onStatusChange, onEdit, onDelete })
     const isDone      = ['resolved', 'closed', 'cancelled'].includes(defect.status);
     const [lightbox, setLightbox] = useState(null);
     const [expanded, setExpanded] = useState(false);
+    const [commentsOpen, setCommentsOpen] = useState(false);
+    const [comments, setComments]         = useState(null); // null = not loaded yet
+    const [commentBody, setCommentBody]   = useState('');
+    const [commentBusy, setCommentBusy]   = useState(false);
+    const [commentCount, setCommentCount] = useState(defect.comment_count || 0);
+    const textareaRef = useRef(null);
+
+    useEffect(() => {
+        if (!commentsOpen || comments !== null) return;
+        api.listComments(defect.id).then((d) => setComments(d.comments)).catch(() => setComments([]));
+    }, [commentsOpen, comments, defect.id]);
+
+    useEffect(() => {
+        if (commentsOpen) textareaRef.current?.focus();
+    }, [commentsOpen]);
+
+    async function handleAddComment(e) {
+        e.preventDefault();
+        if (!commentBody.trim()) return;
+        setCommentBusy(true);
+        try {
+            const { comment } = await api.createComment(defect.id, commentBody);
+            setComments((prev) => [...(prev || []), comment]);
+            setCommentCount((n) => n + 1);
+            setCommentBody('');
+        } catch {}
+        setCommentBusy(false);
+    }
+
+    async function handleDeleteComment(comment) {
+        try {
+            await api.deleteComment(defect.id, comment.id);
+            setComments((prev) => prev.filter((c) => c.id !== comment.id));
+            setCommentCount((n) => Math.max(0, n - 1));
+        } catch {}
+    }
+
+    function formatCommentTime(ts) {
+        const d = new Date(ts);
+        const diff = (Date.now() - d) / 1000;
+        if (diff < 60)   return 'just now';
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    }
 
     const imageAttachments = (defect.attachments || []).filter((a) => a.mime_type?.startsWith('image/'));
     const otherAttachments = (defect.attachments || []).filter((a) => !a.mime_type?.startsWith('image/'));
@@ -126,6 +172,16 @@ export default function DefectCard({ defect, onStatusChange, onEdit, onDelete })
                                 {otherAttachments.length}
                             </span>
                         )}
+
+                        {/* Comments toggle */}
+                        <button
+                            type="button"
+                            onClick={() => setCommentsOpen((v) => !v)}
+                            className={`flex items-center gap-1 ${commentsOpen ? 'text-accent' : 'text-muted hover:text-ink'}`}
+                        >
+                            <CommentIcon size={12} />
+                            <span>{commentCount > 0 ? commentCount : ''} {commentCount === 1 ? 'comment' : commentCount > 1 ? 'comments' : 'Add comment'}</span>
+                        </button>
                     </div>
                 </div>
 
@@ -173,6 +229,60 @@ export default function DefectCard({ defect, onStatusChange, onEdit, onDelete })
                             </button>
                         );
                     })}
+                </div>
+            )}
+
+            {/* Comments panel */}
+            {commentsOpen && (
+                <div className="border-t border-border px-4 pt-3 pb-4 bg-bg/50">
+                    {/* Existing comments */}
+                    {comments === null ? (
+                        <p className="text-xs text-muted py-1">Loading…</p>
+                    ) : comments.length === 0 ? (
+                        <p className="text-xs text-muted py-1 mb-2">No comments yet. Be the first!</p>
+                    ) : (
+                        <ul className="space-y-2 mb-3">
+                            {comments.map((c) => (
+                                <li key={c.id} className="flex gap-2 group/comment">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-baseline gap-1.5 flex-wrap">
+                                            <span className="text-[11px] font-semibold text-ink">{c.username}</span>
+                                            <span className="text-[11px] text-muted">{formatCommentTime(c.created_at)}</span>
+                                        </div>
+                                        <p className="text-xs text-ink leading-relaxed whitespace-pre-wrap mt-0.5">{c.body}</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDeleteComment(c)}
+                                        className="shrink-0 opacity-0 group-hover/comment:opacity-100 p-1 text-muted hover:text-danger transition-opacity"
+                                        title="Delete comment"
+                                    >
+                                        <TrashIcon size={12} />
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+
+                    {/* Add comment form */}
+                    <form onSubmit={handleAddComment} className="flex gap-2">
+                        <textarea
+                            ref={textareaRef}
+                            rows={1}
+                            value={commentBody}
+                            onChange={(e) => setCommentBody(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddComment(e); } }}
+                            placeholder="Add a comment… (Enter to submit)"
+                            className="flex-1 rounded-md border border-border px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent bg-surface resize-none"
+                        />
+                        <button
+                            type="submit"
+                            disabled={commentBusy || !commentBody.trim()}
+                            className="px-3 py-1.5 rounded-md bg-accent hover:bg-accentHover text-white text-xs font-medium disabled:opacity-50"
+                        >
+                            Post
+                        </button>
+                    </form>
                 </div>
             )}
         </li>

@@ -131,7 +131,8 @@ router.get('/', async (req, res) => {
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
     try {
         const result = await pool.query(
-            `SELECT d.*, p.name AS project_name, (d.created_by = $1) AS is_owner
+            `SELECT d.*, p.name AS project_name, (d.created_by = $1) AS is_owner,
+                    (SELECT COUNT(*) FROM comments c WHERE c.defect_id = d.id)::int AS comment_count
              FROM defects d
              JOIN projects p ON d.project_id = p.id
              ${where}

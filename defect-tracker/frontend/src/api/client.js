@@ -63,6 +63,11 @@ export const api = {
     deleteAttachment: (defectId, attachId) =>
         request(`/defects/${defectId}/attachments/${attachId}`, { method: 'DELETE' }),
 
+    // Comments
+    listComments:  (defectId)           => request(`/defects/${defectId}/comments`),
+    createComment: (defectId, body)     => request(`/defects/${defectId}/comments`, { method: 'POST', body: { body } }),
+    deleteComment: (defectId, commentId) => request(`/defects/${defectId}/comments/${commentId}`, { method: 'DELETE' }),
+
     // Users
     listUsers: () => request('/users'),
 };
