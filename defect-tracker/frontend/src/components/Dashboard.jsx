@@ -78,6 +78,10 @@ export default function Dashboard({ user, onLogout }) {
         setDefects((prev) => prev.map((d) => (d.id === defect.id ? { ...d, status: newStatus } : d)));
         try {
             await api.updateDefect(defect.id, { status: newStatus });
+            // If the new status no longer matches the active filter, remove from list
+            if (filters.status?.length > 0 && !filters.status.includes(newStatus)) {
+                setDefects((prev) => prev.filter((d) => d.id !== defect.id));
+            }
         } catch (err) {
             setDefects((prev) => prev.map((d) => (d.id === defect.id ? { ...d, status: defect.status } : d)));
             setError(err.message);
