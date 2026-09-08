@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import * as XLSX from 'xlsx';
 import { api } from '../api/client';
 import DefectCard, { STATUSES } from './DefectCard';
 import DefectForm from './DefectForm';
 import FilterBar from './FilterBar';
-import { LinxasLogo, BugIcon, PlusIcon, CloseIcon, ProjectIcon } from './Icons';
+import { LinxasLogo, BugIcon, PlusIcon, CloseIcon, ProjectIcon, ExportIcon } from './Icons';
 
 const DONE_STATUSES = new Set(['resolved', 'closed', 'cancelled']);
 
@@ -98,6 +99,35 @@ export default function Dashboard({ user, onLogout }) {
             setDefects((prev) => [defect, ...prev]);
             return defect;
         }
+    }
+
+    function handleExport() {
+        const rows = defects.map((d) => ({
+            'ID':               d.id,
+            'Project':          d.project_name,
+            'Title':            d.title,
+            'Description':      d.description || '',
+            'Priority':         d.priority,
+            'Status':           d.status,
+            'Functional User':  d.functional_username || '',
+            'Technical User':   d.technical_username  || '',
+            'Deadline':         d.deadline ? d.deadline.slice(0, 10) : '',
+            'Created':          d.created_at ? new Date(d.created_at).toLocaleDateString() : '',
+            'Comments':         d.comment_count || 0,
+            'Attachments':      (d.attachments || []).length,
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(rows);
+        // Set column widths
+        ws['!cols'] = [
+            { wch: 6 }, { wch: 20 }, { wch: 40 }, { wch: 60 },
+            { wch: 10 }, { wch: 14 }, { wch: 16 }, { wch: 16 },
+            { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 12 },
+        ];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Defects');
+        const date = new Date().toISOString().slice(0, 10);
+        XLSX.writeFile(wb, `defects-${date}.xlsx`);
     }
 
     function handleAttachmentsUploaded(defectId, attachments) {
@@ -228,13 +258,25 @@ export default function Dashboard({ user, onLogout }) {
                     )}
 
                     {/* Stats row */}
-                    <div className="flex gap-2 flex-wrap mb-5">
+                    <div className="flex items-start gap-2 flex-wrap mb-5">
                         {STAT_GROUPS.map((g) => (
                             <StatPill key={g.value} label={g.label} count={stats[g.value] || 0} colorCls={g.cls} />
                         ))}
                         <div className="bg-surface border border-border rounded-lg px-3 py-2 text-center min-w-[80px]">
                             <p className="text-xl font-bold text-ink">{defects.length}</p>
                             <p className="text-[10px] text-muted uppercase tracking-wide font-medium mt-0.5">Total</p>
+                        </div>
+                        <div className="ml-auto self-center">
+                            <button
+                                type="button"
+                                onClick={handleExport}
+                                disabled={defects.length === 0}
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-sm font-medium text-ink hover:bg-bg disabled:opacity-40 transition-colors"
+                                title="Export to Excel"
+                            >
+                                <ExportIcon size={15} />
+                                Export
+                            </button>
                         </div>
                     </div>
 

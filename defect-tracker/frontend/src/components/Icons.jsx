@@ -89,6 +89,16 @@ export function ExternalLinkIcon({ size = 14 }) {
     );
 }
 
+export function ExportIcon({ size = 16 }) {
+    return (
+        <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M9 2H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6L9 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+            <path d="M9 2v4h4" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+            <path d="M6 9.5h4M8 7.5v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+    );
+}
+
 export function CommentIcon({ size = 14 }) {
     return (
         <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true">
