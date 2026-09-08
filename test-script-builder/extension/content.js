@@ -56,18 +56,42 @@ if (window.__tsbLoaded) {
 
     // ── Event listeners ────────────────────────────────────────────────────
 
-    // Clicks on interactive elements
+    // Clicks — captures standard AND custom elements (SAP WebDynpro, etc.)
+    const SKIP_TAGS = new Set(['html', 'body', 'main', 'header', 'footer', 'nav',
+                                'section', 'article', 'aside', 'form', 'ul', 'ol', 'dl']);
+    const INTERACTIVE_TAGS  = new Set(['a', 'button', 'select', 'summary', 'label']);
+    const INTERACTIVE_ROLES = new Set(['button', 'link', 'menuitem', 'tab', 'option',
+                                        'checkbox', 'radio', 'treeitem', 'gridcell', 'row']);
+
     document.addEventListener('click', (e) => {
         if (!recording) return;
-        const interactive = e.target.closest(
-            'a, button, input[type="submit"], input[type="button"], ' +
-            'input[type="checkbox"], input[type="radio"], ' +
-            '[role="button"], [role="link"], [role="menuitem"], [role="tab"], [role="option"]'
-        );
-        if (!interactive) return;
+
+        // Walk up to find the best descriptive element (max 6 levels)
+        let el = e.target;
+        let best = el;
+        for (let i = 0; i < 6 && el && el !== document.body; i++) {
+            const tag  = el.tagName?.toLowerCase() || '';
+            const role = (el.getAttribute?.('role') || '').toLowerCase();
+            if (INTERACTIVE_TAGS.has(tag) || INTERACTIVE_ROLES.has(role) ||
+                el.onclick || el.getAttribute?.('onclick') ||
+                el.getAttribute?.('tabindex') !== null) {
+                best = el;
+                break;
+            }
+            // If element has meaningful visible text, prefer it over a blank parent
+            if ((el.textContent || '').trim()) best = el;
+            el = el.parentElement;
+        }
+
+        // Skip pure layout containers with no text content
+        const tag = best.tagName?.toLowerCase() || '';
+        if (SKIP_TAGS.has(tag)) return;
+        if (!best.textContent?.trim() && !best.getAttribute?.('title') &&
+            !best.getAttribute?.('aria-label')) return;
+
         sendAction({
             actionType: 'click',
-            element:    getElementInfo(interactive),
+            element:    getElementInfo(best),
             url:        location.href,
             pageTitle:  document.title,
             timestamp:  Date.now(),

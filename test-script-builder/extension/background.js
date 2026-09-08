@@ -54,7 +54,10 @@ async function startRecording() {
     const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
     for (const tab of tabs) {
         try {
-            await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] });
+            await chrome.scripting.executeScript({
+                target: { tabId: tab.id, allFrames: true },
+                files:  ['content.js'],
+            });
         } catch {}
     }
 
