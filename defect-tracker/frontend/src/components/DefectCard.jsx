@@ -39,6 +39,7 @@ export default function DefectCard({ defect, onStatusChange, onEdit, onDelete })
     const deadline    = formatDeadline(defect.deadline);
     const isDone      = ['resolved', 'closed', 'cancelled'].includes(defect.status);
     const [lightbox, setLightbox] = useState(null);
+    const [expanded, setExpanded] = useState(false);
 
     const imageAttachments = (defect.attachments || []).filter((a) => a.mime_type?.startsWith('image/'));
     const otherAttachments = (defect.attachments || []).filter((a) => !a.mime_type?.startsWith('image/'));
@@ -64,9 +65,18 @@ export default function DefectCard({ defect, onStatusChange, onEdit, onDelete })
 
                     {/* Description snippet */}
                     {defect.description && (
-                        <p className="text-xs mt-1 text-muted line-clamp-2 leading-relaxed">
-                            {defect.description}
-                        </p>
+                        <div className="mt-1">
+                            <p className={`text-xs text-muted leading-relaxed whitespace-pre-wrap ${expanded ? '' : 'line-clamp-2'}`}>
+                                {defect.description}
+                            </p>
+                            <button
+                                type="button"
+                                onClick={() => setExpanded((v) => !v)}
+                                className="text-[11px] text-accent hover:underline mt-0.5"
+                            >
+                                {expanded ? 'Show less' : 'Show more'}
+                            </button>
+                        </div>
                     )}
 
                     {/* Meta row */}

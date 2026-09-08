@@ -88,14 +88,18 @@ export default function Dashboard({ user, onLogout }) {
         if (formDefect?.id) {
             const { defect } = await api.updateDefect(formDefect.id, form);
             setDefects((prev) => prev.map((d) => (d.id === defect.id ? defect : d)));
-            setFormDefect(null);
             return defect;
         } else {
             const { defect } = await api.createDefect(form);
             setDefects((prev) => [defect, ...prev]);
-            setFormDefect(null);
             return defect;
         }
+    }
+
+    function handleAttachmentsUploaded(defectId, attachments) {
+        setDefects((prev) => prev.map((d) =>
+            d.id === defectId ? { ...d, attachments: [...(d.attachments || []), ...attachments] } : d
+        ));
     }
 
     async function handleDelete(defect) {
@@ -303,6 +307,7 @@ export default function Dashboard({ user, onLogout }) {
                     users={users}
                     currentUser={user}
                     onSave={handleSave}
+                    onAttachmentsUploaded={handleAttachmentsUploaded}
                     onClose={() => setFormDefect(null)}
                 />
             )}

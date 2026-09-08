@@ -24,7 +24,7 @@ function formatBytes(bytes) {
     return `${(bytes / 1048576).toFixed(1)} MB`;
 }
 
-export default function DefectForm({ initial, projects, users, currentUser, onSave, onClose }) {
+export default function DefectForm({ initial, projects, users, currentUser, onSave, onAttachmentsUploaded, onClose }) {
     const isEdit = Boolean(initial?.id);
     const [form, setForm]     = useState(() => initial ? {
         project_id:          initial.project_id,
@@ -38,11 +38,19 @@ export default function DefectForm({ initial, projects, users, currentUser, onSa
     } : { ...empty, functional_username: currentUser.username });
 
     const [stagedFiles, setStagedFiles]   = useState([]); // new files to upload
+    const [stagedPreviews, setStagedPreviews] = useState([]);
     const [existingAttachments, setExistingAttachments] = useState(initial?.attachments || []);
     const [dragOver, setDragOver]         = useState(false);
     const [error, setError]               = useState('');
     const [busy, setBusy]                 = useState(false);
     const fileInputRef                    = useRef(null);
+
+    // Create stable preview URLs for staged files; revoke on change/unmount
+    useEffect(() => {
+        const urls = stagedFiles.map((f) => (f.type.startsWith('image/') ? URL.createObjectURL(f) : null));
+        setStagedPreviews(urls);
+        return () => urls.forEach((url) => url && URL.revokeObjectURL(url));
+    }, [stagedFiles]);
 
     const canChangeAssignees = !isEdit || initial?.is_owner || currentUser.is_admin;
     const [pasteFlash, setPasteFlash] = useState(false);
@@ -108,8 +116,10 @@ export default function DefectForm({ initial, projects, users, currentUser, onSa
             const saved = await onSave(form);
             // Upload any staged files after the defect is saved/updated
             if (stagedFiles.length && saved?.id) {
-                await api.uploadAttachments(saved.id, stagedFiles);
+                const { attachments } = await api.uploadAttachments(saved.id, stagedFiles);
+                if (attachments) onAttachmentsUploaded?.(saved.id, attachments);
             }
+            onClose();
         } catch (err) {
             setError(err.message);
             setBusy(false);
@@ -304,11 +314,10 @@ export default function DefectForm({ initial, projects, users, currentUser, onSa
                         {stagedFiles.length > 0 && (
                             <div className="mb-2 space-y-1">
                                 {stagedFiles.map((f, i) => {
-                                    const isImage = f.type.startsWith('image/');
-                                    const previewUrl = isImage ? URL.createObjectURL(f) : null;
+                                    const previewUrl = stagedPreviews[i];
                                     return (
                                         <div key={i} className="flex items-center gap-2 text-xs text-muted bg-blue-50 rounded px-2 py-1">
-                                            {isImage && previewUrl ? (
+                                            {previewUrl ? (
                                                 <img src={previewUrl} alt={f.name} className="h-10 w-16 object-cover rounded border border-blue-200 shrink-0" />
                                             ) : (
                                                 <PaperclipIcon size={12} />
