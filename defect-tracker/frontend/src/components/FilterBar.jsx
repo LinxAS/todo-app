@@ -99,35 +99,27 @@ export default function FilterBar({ filters, projects, users, onChange }) {
                 </div>
             </div>
 
-            {/* Scope */}
+            {/* Functional User */}
             <div>
-                <p className={sectionLabel}>Scope</p>
-                <div className="flex gap-1.5 flex-wrap mt-1">
-                    {[
-                        ['all',      'All'],
-                        ['mine',     'Involving me'],
-                        ['created',  'Created by me'],
-                        ['assigned', 'Assigned to me'],
-                    ].map(([v, label]) => (
-                        <button
-                            key={v}
-                            type="button"
-                            onClick={() => update('scope', v)}
-                            className={`px-2 py-0.5 rounded-full text-xs font-medium border transition-colors
-                                ${filters.scope === v ? 'bg-accent text-white border-accent' : 'border-border text-ink hover:bg-bg'}`}
-                        >
-                            {label}
-                        </button>
+                <p className={sectionLabel}>Functional User</p>
+                <select
+                    value={filters.functionalUser || ''}
+                    onChange={(e) => update('functionalUser', e.target.value)}
+                    className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent bg-surface mt-1"
+                >
+                    <option value="">Anyone</option>
+                    {users.map((u) => (
+                        <option key={u.id} value={u.id}>{u.username}</option>
                     ))}
-                </div>
+                </select>
             </div>
 
-            {/* Assignee */}
+            {/* Technical User */}
             <div>
-                <p className={sectionLabel}>Assignee</p>
+                <p className={sectionLabel}>Technical User</p>
                 <select
-                    value={filters.assignee || ''}
-                    onChange={(e) => update('assignee', e.target.value)}
+                    value={filters.technicalUser || ''}
+                    onChange={(e) => update('technicalUser', e.target.value)}
                     className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent bg-surface mt-1"
                 >
                     <option value="">Anyone</option>

@@ -90,19 +90,11 @@ async function resolveUsername(username) {
 // ── GET /api/defects ─────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
     const userId = req.user.id;
-    const { project, status, priority, search, scope = 'all', assignee } = req.query;
+    const { project, status, priority, search, functionalUser, technicalUser } = req.query;
 
     const conditions = [];
-    const params = [userId]; // $1 = requesting user
-    let p = 1;
-
-    if (scope === 'mine') {
-        conditions.push(`(d.created_by = $1 OR d.functional_user_id = $1 OR d.technical_user_id = $1)`);
-    } else if (scope === 'created') {
-        conditions.push(`d.created_by = $1`);
-    } else if (scope === 'assigned') {
-        conditions.push(`(d.functional_user_id = $1 OR d.technical_user_id = $1)`);
-    }
+    const params = [];
+    let p = 0;
 
     if (project) {
         const pid = parseInt(project, 10);
@@ -120,18 +112,20 @@ router.get('/', async (req, res) => {
         p++; params.push(`%${search.trim()}%`);
         conditions.push(`(d.title ILIKE $${p} OR d.description ILIKE $${p})`);
     }
-    if (assignee) {
-        const aid = parseInt(assignee, 10);
-        if (!isNaN(aid)) {
-            p++; params.push(aid);
-            conditions.push(`(d.functional_user_id = $${p} OR d.technical_user_id = $${p})`);
-        }
+    if (functionalUser) {
+        const fid = parseInt(functionalUser, 10);
+        if (!isNaN(fid)) { p++; params.push(fid); conditions.push(`d.functional_user_id = $${p}`); }
+    }
+    if (technicalUser) {
+        const tid = parseInt(technicalUser, 10);
+        if (!isNaN(tid)) { p++; params.push(tid); conditions.push(`d.technical_user_id = $${p}`); }
     }
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    p++; params.push(userId); const ownerParam = p;
     try {
         const result = await pool.query(
-            `SELECT d.*, p.name AS project_name, (d.created_by = $1) AS is_owner,
+            `SELECT d.*, p.name AS project_name, (d.created_by = $${ownerParam}) AS is_owner,
                     (SELECT COUNT(*) FROM comments c WHERE c.defect_id = d.id)::int AS comment_count
              FROM defects d
              JOIN projects p ON d.project_id = p.id

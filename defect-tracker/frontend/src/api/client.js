@@ -40,8 +40,9 @@ export const api = {
 
     // Defects
     listDefects: (params = {}) => {
+        const { scope, assignee, ...rest } = params; // eslint-disable-line no-unused-vars
         const serialized = {
-            ...params,
+            ...rest,
             status:   Array.isArray(params.status)   ? params.status.join(',')   : (params.status   || ''),
             priority: Array.isArray(params.priority)  ? params.priority.join(',') : (params.priority || ''),
         };
