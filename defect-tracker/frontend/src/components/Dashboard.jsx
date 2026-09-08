@@ -32,7 +32,9 @@ export default function Dashboard({ user, onLogout }) {
     const [projects, setProjects]         = useState([]);
     const [users, setUsers]               = useState([]);
     const [filters, setFilters]           = useState({
-        search: '', project: '', status: ['new', 'in_progress'], priority: [], functionalUser: '', technicalUser: '',
+        search: '', project: '', status: ['new', 'in_progress'], priority: [],
+        deadlineMode: 'any', deadlineFrom: '', deadlineTo: '',
+        functionalUser: '', technicalUser: '',
     });
     const [formDefect, setFormDefect]     = useState(null); // null=closed, {}=new, defect=edit
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -165,7 +167,8 @@ export default function Dashboard({ user, onLogout }) {
     }
 
     const hasActiveFilters = filters.status?.length > 0 || filters.priority?.length > 0 ||
-                             filters.project || filters.functionalUser || filters.technicalUser;
+                             filters.project || filters.functionalUser || filters.technicalUser ||
+                             (filters.deadlineMode && filters.deadlineMode !== 'any');
 
     // ── Render ─────────────────────────────────────────────────────────────
     return (

@@ -99,6 +99,40 @@ export default function FilterBar({ filters, projects, users, onChange }) {
                 </div>
             </div>
 
+            {/* Deadline */}
+            <div>
+                <p className={sectionLabel}>Deadline</p>
+                <select
+                    value={filters.deadlineMode || 'any'}
+                    onChange={(e) => onChange({ ...filters, deadlineMode: e.target.value, deadlineFrom: '', deadlineTo: '' })}
+                    className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent bg-surface mt-1"
+                >
+                    <option value="any">Any date</option>
+                    <option value="on">On</option>
+                    <option value="before">Before</option>
+                    <option value="after">After</option>
+                    <option value="between">Between</option>
+                    <option value="none">No deadline</option>
+                </select>
+                {['on','before','after','between'].includes(filters.deadlineMode) && (
+                    <input
+                        type="date"
+                        value={filters.deadlineFrom || ''}
+                        onChange={(e) => update('deadlineFrom', e.target.value)}
+                        className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent bg-surface mt-1"
+                    />
+                )}
+                {filters.deadlineMode === 'between' && (
+                    <input
+                        type="date"
+                        value={filters.deadlineTo || ''}
+                        onChange={(e) => update('deadlineTo', e.target.value)}
+                        className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent bg-surface mt-1"
+                        placeholder="End date"
+                    />
+                )}
+            </div>
+
             {/* Functional User */}
             <div>
                 <p className={sectionLabel}>Functional User</p>

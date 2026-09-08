@@ -90,7 +90,8 @@ async function resolveUsername(username) {
 // ── GET /api/defects ─────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
     const userId = req.user.id;
-    const { project, status, priority, search, functionalUser, technicalUser } = req.query;
+    const { project, status, priority, search, functionalUser, technicalUser,
+            deadlineMode, deadlineFrom, deadlineTo } = req.query;
 
     const conditions = [];
     const params = [];
@@ -112,6 +113,22 @@ router.get('/', async (req, res) => {
         p++; params.push(`%${search.trim()}%`);
         conditions.push(`(d.title ILIKE $${p} OR d.description ILIKE $${p})`);
     }
+    if (deadlineMode === 'none') {
+        conditions.push('d.deadline IS NULL');
+    } else if (deadlineMode && deadlineFrom) {
+        if (deadlineMode === 'on') {
+            p++; params.push(deadlineFrom); conditions.push(`d.deadline = $${p}`);
+        } else if (deadlineMode === 'before') {
+            p++; params.push(deadlineFrom); conditions.push(`d.deadline < $${p}`);
+        } else if (deadlineMode === 'after') {
+            p++; params.push(deadlineFrom); conditions.push(`d.deadline > $${p}`);
+        } else if (deadlineMode === 'between' && deadlineTo) {
+            p++; params.push(deadlineFrom); const pFrom = p;
+            p++; params.push(deadlineTo);
+            conditions.push(`d.deadline BETWEEN $${pFrom} AND $${p}`);
+        }
+    }
+
     if (functionalUser) {
         const fid = parseInt(functionalUser, 10);
         if (!isNaN(fid)) { p++; params.push(fid); conditions.push(`d.functional_user_id = $${p}`); }
