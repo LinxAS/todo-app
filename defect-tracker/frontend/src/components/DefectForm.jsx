@@ -45,12 +45,44 @@ export default function DefectForm({ initial, projects, users, currentUser, onSa
     const fileInputRef                    = useRef(null);
 
     const canChangeAssignees = !isEdit || initial?.is_owner || currentUser.is_admin;
+    const [pasteFlash, setPasteFlash] = useState(false);
 
     const addFiles = useCallback((fileList) => {
         const allowed = /^(image\/|video\/|application\/pdf)/;
         const valid = Array.from(fileList).filter((f) => allowed.test(f.type));
         if (valid.length < fileList.length) setError('Only images, videos, and PDFs are allowed');
         setStagedFiles((prev) => [...prev, ...valid]);
+    }, []);
+
+    // Clipboard paste — converts any image to JPEG and adds to staged files
+    useEffect(() => {
+        function handlePaste(e) {
+            const items = Array.from(e.clipboardData?.items || []);
+            const imageItem = items.find((item) => item.type.startsWith('image/'));
+            if (!imageItem) return;
+            e.preventDefault();
+            const file = imageItem.getAsFile();
+            if (!file) return;
+
+            const objectUrl = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width  = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+                canvas.getContext('2d').drawImage(img, 0, 0);
+                URL.revokeObjectURL(objectUrl);
+                canvas.toBlob((blob) => {
+                    const name = `screenshot-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.jpg`;
+                    setStagedFiles((prev) => [...prev, new File([blob], name, { type: 'image/jpeg' })]);
+                    setPasteFlash(true);
+                    setTimeout(() => setPasteFlash(false), 1500);
+                }, 'image/jpeg', 0.92);
+            };
+            img.src = objectUrl;
+        }
+        window.addEventListener('paste', handlePaste);
+        return () => window.removeEventListener('paste', handlePaste);
     }, []);
 
     function removeStaged(idx) {
@@ -242,67 +274,81 @@ export default function DefectForm({ initial, projects, users, currentUser, onSa
 
                         {/* Existing attachments (edit mode) */}
                         {existingAttachments.length > 0 && (
-                            <ul className="mb-2 space-y-1">
-                                {existingAttachments.map((a) => (
-                                    <li key={a.id} className="flex items-center gap-2 text-xs text-muted bg-bg rounded px-2 py-1">
-                                        <PaperclipIcon size={12} />
-                                        <a
-                                            href={`${import.meta.env.BASE_URL}api/uploads/${a.filename}`}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="flex-1 truncate text-accent hover:underline"
-                                        >
-                                            {a.original_name}
-                                        </a>
-                                        <span>{formatBytes(a.size_bytes)}</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => removeExisting(a)}
-                                            className="text-muted hover:text-danger"
-                                            title="Remove"
-                                        >
-                                            <TrashIcon size={12} />
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
+                            <div className="mb-2 space-y-1">
+                                {existingAttachments.map((a) => {
+                                    const isImage = a.mime_type?.startsWith('image/');
+                                    const url = `${import.meta.env.BASE_URL}api/uploads/${a.filename}`;
+                                    return (
+                                        <div key={a.id} className="flex items-center gap-2 text-xs text-muted bg-bg rounded px-2 py-1">
+                                            {isImage ? (
+                                                <a href={url} target="_blank" rel="noreferrer" className="shrink-0">
+                                                    <img src={url} alt={a.original_name} className="h-10 w-16 object-cover rounded border border-border" />
+                                                </a>
+                                            ) : (
+                                                <PaperclipIcon size={12} />
+                                            )}
+                                            <a href={url} target="_blank" rel="noreferrer" className="flex-1 truncate text-accent hover:underline">
+                                                {a.original_name}
+                                            </a>
+                                            <span>{formatBytes(a.size_bytes)}</span>
+                                            <button type="button" onClick={() => removeExisting(a)} className="text-muted hover:text-danger" title="Remove">
+                                                <TrashIcon size={12} />
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         )}
 
                         {/* Staged new files */}
                         {stagedFiles.length > 0 && (
-                            <ul className="mb-2 space-y-1">
-                                {stagedFiles.map((f, i) => (
-                                    <li key={i} className="flex items-center gap-2 text-xs text-muted bg-blue-50 rounded px-2 py-1">
-                                        <PaperclipIcon size={12} />
-                                        <span className="flex-1 truncate text-ink">{f.name}</span>
-                                        <span>{formatBytes(f.size)}</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => removeStaged(i)}
-                                            className="text-muted hover:text-danger"
-                                            title="Remove"
-                                        >
-                                            <TrashIcon size={12} />
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
+                            <div className="mb-2 space-y-1">
+                                {stagedFiles.map((f, i) => {
+                                    const isImage = f.type.startsWith('image/');
+                                    const previewUrl = isImage ? URL.createObjectURL(f) : null;
+                                    return (
+                                        <div key={i} className="flex items-center gap-2 text-xs text-muted bg-blue-50 rounded px-2 py-1">
+                                            {isImage && previewUrl ? (
+                                                <img src={previewUrl} alt={f.name} className="h-10 w-16 object-cover rounded border border-blue-200 shrink-0" />
+                                            ) : (
+                                                <PaperclipIcon size={12} />
+                                            )}
+                                            <span className="flex-1 truncate text-ink">{f.name}</span>
+                                            <span>{formatBytes(f.size)}</span>
+                                            <button type="button" onClick={() => removeStaged(i)} className="text-muted hover:text-danger" title="Remove">
+                                                <TrashIcon size={12} />
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         )}
 
                         {/* Drop zone */}
                         <div
-                            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
-                                ${dragOver ? 'border-accent bg-blue-50' : 'border-border hover:border-accent hover:bg-bg'}`}
+                            className={`border-2 border-dashed rounded-lg p-5 text-center cursor-pointer transition-colors
+                                ${pasteFlash ? 'border-green-400 bg-green-50' :
+                                  dragOver    ? 'border-accent bg-blue-50'   :
+                                               'border-border hover:border-accent hover:bg-bg'}`}
                             onClick={() => fileInputRef.current?.click()}
                             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                             onDragLeave={() => setDragOver(false)}
                             onDrop={(e) => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
                         >
-                            <UploadIcon size={28} className="mx-auto text-muted mb-2" />
-                            <p className="text-sm text-muted">
-                                <span className="font-medium text-accent">Click to upload</span> or drag & drop
-                            </p>
-                            <p className="text-xs text-muted mt-1">Images, videos, PDFs — max 50 MB each</p>
+                            <UploadIcon size={26} className="mx-auto text-muted mb-1.5" />
+                            {pasteFlash ? (
+                                <p className="text-sm font-medium text-green-600">Screenshot added!</p>
+                            ) : (
+                                <>
+                                    <p className="text-sm text-muted">
+                                        <span className="font-medium text-accent">Click to upload</span> or drag & drop
+                                    </p>
+                                    <p className="text-xs text-muted mt-0.5">
+                                        Or press <kbd className="px-1 py-0.5 rounded bg-border text-ink font-mono text-[10px]">Ctrl+V</kbd> to paste a screenshot
+                                    </p>
+                                    <p className="text-xs text-muted mt-0.5">Images, videos, PDFs — max 50 MB each</p>
+                                </>
+                            )}
                             <input
                                 ref={fileInputRef}
                                 type="file"

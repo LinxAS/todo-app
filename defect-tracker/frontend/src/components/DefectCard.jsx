@@ -1,5 +1,5 @@
-import React from 'react';
-import { EditIcon, TrashIcon, PaperclipIcon } from './Icons';
+import React, { useState } from 'react';
+import { EditIcon, TrashIcon, PaperclipIcon, CloseIcon } from './Icons';
 
 const PRIORITY_STYLE = {
     critical: { bar: 'bg-priorityCritical', label: 'Critical', text: 'text-priorityCritical' },
@@ -38,8 +38,13 @@ export default function DefectCard({ defect, onStatusChange, onEdit, onDelete })
     const statusStyle = STATUS_MAP[defect.status]       || STATUS_MAP.new;
     const deadline    = formatDeadline(defect.deadline);
     const isDone      = ['resolved', 'closed', 'cancelled'].includes(defect.status);
+    const [lightbox, setLightbox] = useState(null);
+
+    const imageAttachments = (defect.attachments || []).filter((a) => a.mime_type?.startsWith('image/'));
+    const otherAttachments = (defect.attachments || []).filter((a) => !a.mime_type?.startsWith('image/'));
 
     return (
+        <>
         <li className="flex items-stretch bg-surface border border-border rounded-lg overflow-hidden group shadow-sm hover:shadow-md transition-shadow">
             {/* Priority bar */}
             <span className={`w-1.5 shrink-0 ${priority.bar}`} aria-hidden="true" />
@@ -104,11 +109,11 @@ export default function DefectCard({ defect, onStatusChange, onEdit, onDelete })
                             </span>
                         )}
 
-                        {/* Attachments count */}
-                        {defect.attachments?.length > 0 && (
+                        {/* Non-image attachment count */}
+                        {otherAttachments.length > 0 && (
                             <span className="flex items-center gap-0.5 text-muted">
                                 <PaperclipIcon size={12} />
-                                {defect.attachments.length}
+                                {otherAttachments.length}
                             </span>
                         )}
                     </div>
@@ -136,6 +141,54 @@ export default function DefectCard({ defect, onStatusChange, onEdit, onDelete })
                     )}
                 </div>
             </div>
+
+            {/* Screenshot thumbnails */}
+            {imageAttachments.length > 0 && (
+                <div className="flex gap-2 px-4 pb-3 flex-wrap">
+                    {imageAttachments.map((a) => {
+                        const url = `${import.meta.env.BASE_URL}api/uploads/${a.filename}`;
+                        return (
+                            <button
+                                key={a.id}
+                                type="button"
+                                onClick={() => setLightbox(url)}
+                                className="shrink-0 rounded overflow-hidden border border-border hover:border-accent transition-colors"
+                                title={a.original_name}
+                            >
+                                <img
+                                    src={url}
+                                    alt={a.original_name}
+                                    className="h-16 w-24 object-cover"
+                                />
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
         </li>
+
+        {/* Lightbox */}
+        {lightbox && (
+            <div
+                className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+                onClick={() => setLightbox(null)}
+            >
+                <button
+                    type="button"
+                    onClick={() => setLightbox(null)}
+                    className="absolute top-4 right-4 p-2 text-white hover:text-gray-300"
+                    aria-label="Close"
+                >
+                    <CloseIcon size={24} />
+                </button>
+                <img
+                    src={lightbox}
+                    alt="Screenshot"
+                    className="max-w-full max-h-full rounded-lg shadow-2xl"
+                    onClick={(e) => e.stopPropagation()}
+                />
+            </div>
+        )}
+        </>
     );
 }

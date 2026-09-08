@@ -5,12 +5,20 @@ const { requireAuth } = require('../middleware/auth');
 const router = express.Router();
 router.use(requireAuth);
 
-// GET /api/projects
+// GET /api/projects?all=true  (all=true shows inactive, admin only)
 router.get('/', async (req, res) => {
+    const showAll = req.query.all === 'true' && req.user.is_admin;
     try {
-        const result = await pool.query(
-            'SELECT * FROM projects WHERE is_active = TRUE ORDER BY name ASC'
-        );
+        const result = await pool.query(`
+            SELECT p.*,
+                COUNT(d.id) FILTER (WHERE d.status NOT IN ('resolved','closed','cancelled')) AS open_count,
+                COUNT(d.id) AS total_count
+            FROM projects p
+            LEFT JOIN defects d ON d.project_id = p.id
+            ${showAll ? '' : 'WHERE p.is_active = TRUE'}
+            GROUP BY p.id
+            ORDER BY p.name ASC
+        `);
         res.json({ projects: result.rows });
     } catch (err) {
         console.error('List projects error:', err);
