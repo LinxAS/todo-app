@@ -12,6 +12,17 @@ function TasksIcon() {
     );
 }
 
+function DefectIcon() {
+    return (
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <rect width="32" height="32" rx="8" fill="#DBEAFE"/>
+            <path d="M16 10a4 4 0 0 1 4 4v3a4 4 0 0 1-8 0v-3a4 4 0 0 1 4-4Z" stroke="#3B82F6" strokeWidth="1.8" strokeLinecap="round"/>
+            <path d="M10 16H7M25 16h-3M10 13l-2-2M22 13l2-2M10 20l-2 2M22 20l2 2" stroke="#3B82F6" strokeWidth="1.6" strokeLinecap="round"/>
+            <path d="M13 10V8.5a3 3 0 0 1 6 0V10" stroke="#3B82F6" strokeWidth="1.6" strokeLinecap="round"/>
+        </svg>
+    );
+}
+
 function UsersIcon() {
     return (
         <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
@@ -76,9 +87,16 @@ export default function PortalDashboard({ user, onLogout, onNavigate }) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <AppTile
                         icon={<TasksIcon />}
-                        title="Tasks"
-                        description="Manage your work and personal to-do lists with priorities, deadlines, and sharing."
+                        title="Task Master"
+                        description="Manage work tasks with priorities, deadlines, status tracking, and team assignment."
                         onClick={() => window.open('/todo/', '_blank')}
+                    />
+
+                    <AppTile
+                        icon={<DefectIcon />}
+                        title="Defect Tracker"
+                        description="Capture, assign, and track bugs across projects. Upload screenshots and manage resolution workflows."
+                        onClick={() => window.open('/defects/', '_blank')}
                     />
 
                     {user.is_admin && (
