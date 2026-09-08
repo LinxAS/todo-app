@@ -172,7 +172,7 @@ export default function Dashboard({ user, onLogout }) {
         <div className="min-h-screen bg-bg">
             {/* Header */}
             <header className="sticky top-0 z-30 bg-bg/95 backdrop-blur border-b border-border">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
+                <div className="mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                         <LinxasLogo size={28} />
                         <div className="leading-tight">
@@ -194,7 +194,7 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
             </header>
 
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-col md:flex-row gap-6">
+            <div className="mx-auto px-4 sm:px-6 py-6 flex flex-col md:flex-row gap-6">
 
                 {/* Desktop sidebar */}
                 <aside className="hidden md:flex flex-col gap-4 w-56 shrink-0">
