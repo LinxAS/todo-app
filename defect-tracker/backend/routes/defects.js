@@ -42,10 +42,13 @@ const ORDER_CLAUSE = `
 async function getUsernameMap(userIds) {
     if (!userIds.length) return {};
     const result = await portalPool.query(
-        'SELECT id, username FROM users WHERE id = ANY($1::int[])',
+        'SELECT id, username, first_name, last_name FROM users WHERE id = ANY($1::int[])',
         [userIds]
     );
-    return Object.fromEntries(result.rows.map((u) => [u.id, u.username]));
+    return Object.fromEntries(result.rows.map((u) => {
+        const full = [u.first_name, u.last_name].filter(Boolean).join(' ');
+        return [u.id, full || u.username];
+    }));
 }
 
 async function attachUsernames(defects) {
