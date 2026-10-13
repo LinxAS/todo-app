@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
 async function sendNewDefectNotification({ to, defect }) {
     if (!to) return;
 
-    const deadline   = defect.deadline ? defect.deadline.slice(0, 10) : 'Not set';
+    const deadline   = defect.deadline ? new Date(defect.deadline).toISOString().slice(0, 10) : 'Not set';
     const priority   = defect.priority.charAt(0).toUpperCase() + defect.priority.slice(1);
     const description = defect.description || '(No description provided)';
 
