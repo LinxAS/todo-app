@@ -9,7 +9,7 @@ router.use(requireAuth);
 router.get('/', async (req, res) => {
     try {
         const result = await portalPool.query(
-            'SELECT id, username FROM users ORDER BY username ASC'
+            'SELECT id, username, first_name, last_name FROM users ORDER BY first_name ASC, last_name ASC'
         );
         res.json({ users: result.rows });
     } catch (err) {

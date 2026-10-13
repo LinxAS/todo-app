@@ -255,7 +255,9 @@ export default function DefectForm({ initial, projects, users, currentUser, onSa
                             >
                                 <option value="">— Select user —</option>
                                 {users.map((u) => (
-                                    <option key={u.id} value={u.username}>{u.username}</option>
+                                    <option key={u.id} value={u.username}>
+                                        {u.first_name && u.last_name ? `${u.first_name} ${u.last_name}` : u.username}
+                                    </option>
                                 ))}
                             </select>
                         </div>
@@ -272,7 +274,9 @@ export default function DefectForm({ initial, projects, users, currentUser, onSa
                             >
                                 <option value="">— Unassigned —</option>
                                 {users.map((u) => (
-                                    <option key={u.id} value={u.username}>{u.username}</option>
+                                    <option key={u.id} value={u.username}>
+                                        {u.first_name && u.last_name ? `${u.first_name} ${u.last_name}` : u.username}
+                                    </option>
                                 ))}
                             </select>
                         </div>
