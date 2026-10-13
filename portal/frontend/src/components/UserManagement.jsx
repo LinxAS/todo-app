@@ -187,7 +187,7 @@ export default function UserManagement({ user, onBack, onLogout }) {
     return (
         <div className="min-h-screen bg-bg">
             <header className="sticky top-0 z-30 bg-bg/95 backdrop-blur border-b border-border">
-                <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+                <div className="max-w-full mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <button
                             type="button"
@@ -215,7 +215,7 @@ export default function UserManagement({ user, onBack, onLogout }) {
                 </div>
             </header>
 
-            <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+            <main className="max-w-full mx-auto px-4 sm:px-6 py-8">
                 <div className="flex items-center justify-between mb-6">
                     <h1 className="text-xl font-extrabold text-ink">Users</h1>
                     <button

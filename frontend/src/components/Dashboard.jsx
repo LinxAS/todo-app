@@ -99,7 +99,7 @@ export default function Dashboard({ user, onLogout }) {
     return (
         <div className="min-h-screen bg-bg">
             <header className="sticky top-0 z-30 bg-bg/95 backdrop-blur border-b border-border">
-                <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+                <div className="max-w-full mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <LinxasLogo size={28} />
                         <div className="leading-tight">
@@ -120,7 +120,7 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
             </header>
 
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 flex flex-col md:flex-row gap-6">
+            <div className="max-w-full mx-auto px-4 sm:px-6 py-6 flex flex-col md:flex-row gap-6">
                 {/* Desktop filter sidebar */}
                 <aside className="hidden md:block w-56 shrink-0">
                     <FilterBar filters={filters} onChange={setFilters} />

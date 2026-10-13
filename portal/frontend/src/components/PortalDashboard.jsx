@@ -58,7 +58,7 @@ export default function PortalDashboard({ user, onLogout, onNavigate }) {
     return (
         <div className="min-h-screen bg-bg">
             <header className="sticky top-0 z-30 bg-bg/95 backdrop-blur border-b border-border">
-                <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+                <div className="max-w-full mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <LinxasLogo size={28} />
                         <span className="text-lg font-extrabold tracking-tight text-ink">Linx-AS</span>
