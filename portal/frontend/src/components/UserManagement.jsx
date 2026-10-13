@@ -7,7 +7,7 @@ function Badge({ isAdmin }) {
         : <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-border text-muted">User</span>;
 }
 
-const EMPTY_FORM = { username: '', password: '', first_name: '', last_name: '', is_admin: false };
+const EMPTY_FORM = { username: '', password: '', first_name: '', last_name: '', email: '', is_admin: false };
 
 function UserForm({ initial, onSubmit, onCancel, busy, error, mode }) {
     const [form, setForm] = useState(initial || EMPTY_FORM);
@@ -65,6 +65,16 @@ function UserForm({ initial, onSubmit, onCancel, busy, error, mode }) {
                         value={form.password}
                         onChange={(e) => set('password', e.target.value)}
                         className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                    />
+                </div>
+                <div className="sm:col-span-2">
+                    <label className="block text-xs font-medium text-ink mb-1">Email</label>
+                    <input
+                        type="email"
+                        value={form.email || ''}
+                        onChange={(e) => set('email', e.target.value)}
+                        className="w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                        placeholder="user@example.com"
                     />
                 </div>
             </div>
@@ -137,6 +147,7 @@ export default function UserManagement({ user, onBack, onLogout }) {
             const patch = {
                 first_name: form.first_name,
                 last_name: form.last_name,
+                email: form.email,
                 is_admin: form.is_admin,
             };
             if (form.password) patch.password = form.password;
@@ -267,6 +278,7 @@ export default function UserManagement({ user, onBack, onLogout }) {
                                     <tr className="border-b border-border bg-bg">
                                         <th className="text-left px-4 py-3 font-semibold text-ink">Name</th>
                                         <th className="text-left px-4 py-3 font-semibold text-ink">Username</th>
+                                        <th className="text-left px-4 py-3 font-semibold text-ink hidden md:table-cell">Email</th>
                                         <th className="text-left px-4 py-3 font-semibold text-ink">Role</th>
                                         <th className="text-left px-4 py-3 font-semibold text-ink hidden sm:table-cell">Joined</th>
                                         <th className="px-4 py-3" />
@@ -281,6 +293,9 @@ export default function UserManagement({ user, onBack, onLogout }) {
                                                 {u.id === user.id && (
                                                     <span className="ml-2 text-xs text-muted">(you)</span>
                                                 )}
+                                            </td>
+                                            <td className="px-4 py-3 text-muted hidden md:table-cell">
+                                                {u.email || <span className="italic">—</span>}
                                             </td>
                                             <td className="px-4 py-3"><Badge isAdmin={u.is_admin} /></td>
                                             <td className="px-4 py-3 text-muted hidden sm:table-cell">
