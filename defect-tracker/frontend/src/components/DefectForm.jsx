@@ -26,16 +26,29 @@ function formatBytes(bytes) {
 
 export default function DefectForm({ initial, projects, users, currentUser, onSave, onAttachmentsUploaded, onClose }) {
     const isEdit = Boolean(initial?.id);
-    const [form, setForm]     = useState(() => initial ? {
-        project_id:          initial.project_id,
-        title:               initial.title,
-        description:         initial.description || '',
-        priority:            initial.priority,
-        status:              initial.status,
-        functional_username: initial.functional_username || '',
-        technical_username:  initial.technical_username  || '',
-        deadline:            initial.deadline ? initial.deadline.slice(0, 10) : '',
-    } : { ...empty, functional_username: currentUser.username });
+    const [form, setForm]     = useState(() => {
+        if (initial) {
+            return {
+                project_id:          initial.project_id,
+                title:               initial.title,
+                description:         initial.description || '',
+                priority:            initial.priority,
+                status:              initial.status,
+                functional_username: initial.functional_username || '',
+                technical_username:  initial.technical_username  || '',
+                deadline:            initial.deadline ? initial.deadline.slice(0, 10) : '',
+            };
+        }
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return {
+            ...empty,
+            project_id:          localStorage.getItem('lastDefectProjectId') || '',
+            deadline:            tomorrow.toISOString().slice(0, 10),
+            functional_username: currentUser.username,
+            technical_username:  currentUser.username,
+        };
+    });
 
     const [stagedFiles, setStagedFiles]   = useState([]); // new files to upload
     const [stagedPreviews, setStagedPreviews] = useState([]);
@@ -159,7 +172,10 @@ export default function DefectForm({ initial, projects, users, currentUser, onSa
                                 id="project"
                                 required
                                 value={form.project_id}
-                                onChange={(e) => setForm({ ...form, project_id: e.target.value })}
+                                onChange={(e) => {
+                                    if (!isEdit) localStorage.setItem('lastDefectProjectId', e.target.value);
+                                    setForm({ ...form, project_id: e.target.value });
+                                }}
                                 className={inputCls}
                             >
                                 <option value="">— Select project —</option>
