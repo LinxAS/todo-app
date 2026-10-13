@@ -57,6 +57,7 @@ export default function DefectForm({ initial, projects, users, currentUser, onSa
     const [error, setError]               = useState('');
     const [busy, setBusy]                 = useState(false);
     const fileInputRef                    = useRef(null);
+    const mouseDownOnBackdrop             = useRef(false);
 
     // Create stable preview URLs for staged files; revoke on change/unmount
     useEffect(() => {
@@ -145,7 +146,8 @@ export default function DefectForm({ initial, projects, users, currentUser, onSa
     return (
         <div
             className="fixed inset-0 bg-ink/40 flex items-end sm:items-center justify-center z-50 px-0 sm:px-4"
-            onClick={onClose}
+            onMouseDown={(e) => { mouseDownOnBackdrop.current = e.target === e.currentTarget; }}
+            onClick={(e) => { if (mouseDownOnBackdrop.current && e.target === e.currentTarget) onClose(); }}
         >
             <div
                 className="bg-surface w-full sm:max-w-2xl sm:rounded-xl rounded-t-2xl max-h-[92vh] flex flex-col"
