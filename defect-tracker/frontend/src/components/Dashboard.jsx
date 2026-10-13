@@ -32,7 +32,8 @@ export default function Dashboard({ user, onLogout }) {
     const [projects, setProjects]         = useState([]);
     const [users, setUsers]               = useState([]);
     const [filters, setFilters]           = useState({
-        search: '', project: '', status: ['new', 'in_progress'], priority: [],
+        search: '', project: localStorage.getItem('lastDefectProjectFilter') || '',
+        status: ['new', 'in_progress'], priority: [],
         deadlineMode: 'any', deadlineFrom: '', deadlineTo: '',
         functionalUser: '', technicalUser: '',
     });
@@ -42,6 +43,10 @@ export default function Dashboard({ user, onLogout }) {
     const [projectForm, setProjectForm]             = useState({ name: '', description: '' });
     const [projectBusy, setProjectBusy]             = useState(false);
     const [projectError, setProjectError]           = useState('');
+
+    useEffect(() => {
+        localStorage.setItem('lastDefectProjectFilter', filters.project || '');
+    }, [filters.project]);
 
     // ── Data loading ───────────────────────────────────────────────────────
     const loadDefects = useCallback(async (activeFilters) => {
