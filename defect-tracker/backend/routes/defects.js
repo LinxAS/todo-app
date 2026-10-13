@@ -6,6 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const pool       = require('../db/pool');
 const portalPool = require('../db/portalPool');
 const { requireAuth } = require('../middleware/auth');
+const { sendNewDefectNotification } = require('../mailer');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -200,6 +201,16 @@ router.post('/', async (req, res) => {
         );
         const [defect] = await attachUsernames(row.rows);
         res.status(201).json({ defect: { ...defect, attachments: [] } });
+
+        // Fire-and-forget email to technical user
+        if (technicalUserId) {
+            portalPool.query('SELECT email FROM users WHERE id = $1', [technicalUserId])
+                .then(({ rows }) => {
+                    const email = rows[0]?.email;
+                    if (email) return sendNewDefectNotification({ to: email, defect });
+                })
+                .catch((err) => console.error('Email notification error:', err));
+        }
     } catch (err) {
         console.error('Create defect error:', err);
         res.status(500).json({ error: 'Could not create defect' });
