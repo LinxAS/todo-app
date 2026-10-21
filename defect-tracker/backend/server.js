@@ -25,3 +25,12 @@ app.use(express.static(distPath));
 app.get('*', (req, res) => res.sendFile(path.join(distPath, 'index.html')));
 
 app.listen(PORT, () => console.log(`Linxas Defect Tracker running on port ${PORT}`));
+
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught exception:', err);
+    process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+    console.error('Unhandled rejection:', reason);
+    process.exit(1);
+});

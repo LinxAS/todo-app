@@ -41,3 +41,12 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
     console.log(`Linx-AS Portal API listening on port ${PORT}`);
 });
+
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught exception:', err);
+    process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+    console.error('Unhandled rejection:', reason);
+    process.exit(1);
+});
