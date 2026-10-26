@@ -143,7 +143,7 @@ export default function FilterBar({ filters, projects, users, onChange }) {
                 >
                     <option value="">Anyone</option>
                     {users.map((u) => (
-                        <option key={u.id} value={u.id}>{u.username}</option>
+                        <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>
                     ))}
                 </select>
             </div>
@@ -158,7 +158,7 @@ export default function FilterBar({ filters, projects, users, onChange }) {
                 >
                     <option value="">Anyone</option>
                     {users.map((u) => (
-                        <option key={u.id} value={u.id}>{u.username}</option>
+                        <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>
                     ))}
                 </select>
             </div>
